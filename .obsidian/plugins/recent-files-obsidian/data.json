@@ -1,6 +1,14 @@
 {
   "recentFiles": [
     {
+      "basename": "Day4",
+      "path": "算法笔记/Day4.md"
+    },
+    {
+      "basename": "Day2",
+      "path": "算法笔记/Day2.md"
+    },
+    {
       "basename": "Day9",
       "path": "Diary/2026-04/Day9.md"
     },
@@ -43,10 +51,6 @@
     {
       "basename": "Day1",
       "path": "算法笔记/Day1.md"
-    },
-    {
-      "basename": "Day2",
-      "path": "算法笔记/Day2.md"
     },
     {
       "basename": "Day3",
@@ -195,10 +199,6 @@
     {
       "basename": "README",
       "path": "README.md"
-    },
-    {
-      "basename": "CLAUDE",
-      "path": "CLAUDE.md"
     }
   ],
   "omittedPaths": [],
