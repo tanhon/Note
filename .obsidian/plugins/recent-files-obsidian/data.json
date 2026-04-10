@@ -9,6 +9,10 @@
       "path": "每日一问.md"
     },
     {
+      "basename": "Reference_base",
+      "path": "BASE/Reference_base.base"
+    },
+    {
       "basename": "Day8",
       "path": "Diary/2026-04/Day8.md"
     },
@@ -195,10 +199,6 @@
     {
       "basename": "CLAUDE",
       "path": "CLAUDE.md"
-    },
-    {
-      "basename": "Claude-Code-Skill开发指南",
-      "path": "使用说明/Claude-Code-Skill开发指南.md"
     }
   ],
   "omittedPaths": [],
