@@ -1,0 +1,28 @@
+name: 参考资料数据库
+description: 参考资料数据库：管理Reference文件夹中的文档，按创建时间降序排列，包含AI摘要
+sources:
+  - type: folder
+    path: Reference
+fields:
+  ai_summary:
+    name: AI摘要
+    type: text
+    description: AI自动生成的文档摘要
+version: 1
+views:
+  - type: table
+    name: 表格视图
+    sort: []
+    columns:
+      - name: 文件名
+        property: file
+        width: 200
+      - name: 创建时间
+        property: created
+        width: 150
+      - name: 修改时间
+        property: modified
+        width: 150
+      - name: AI摘要
+        property: ai_summary
+        width: 300
