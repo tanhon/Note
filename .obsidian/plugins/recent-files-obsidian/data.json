@@ -1,6 +1,10 @@
 {
   "recentFiles": [
     {
+      "basename": "Day5",
+      "path": "算法笔记/Day5.md"
+    },
+    {
       "basename": "Day10",
       "path": "Diary/2026-04/Day10.md"
     },
@@ -195,10 +199,6 @@
     {
       "basename": "Day17",
       "path": "Diary/2026-03/Day17.md"
-    },
-    {
-      "basename": "测试基础——边界值分析法（黑盒）",
-      "path": "Create/测试/测试基础——边界值分析法（黑盒）.md"
     }
   ],
   "omittedPaths": [],
