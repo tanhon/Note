@@ -101,7 +101,7 @@ pre[r] - pre[l] = k
 ---
 
 ## 模板 D：异或版 Two Sum
-
+a ^ b —— 用集合理解就是 a 中独有的元素
 **结构：**
 a ^ b = target  
 → b = a ^ target
@@ -117,3 +117,7 @@ a ^ b = target
 → max(a) - min(b)
 
 👉 转化为“极值组合”（你之前那题）
+
+| 只判断存在 | `unordered_set` |
+| ----- | --------------- |
+| 要计数   | `unordered_map` |
