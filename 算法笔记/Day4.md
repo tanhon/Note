@@ -53,6 +53,7 @@ public:
         unordered_map<string, int> cnt;
         long long ans = 0;
         for (auto& [s, c] : cnt_words) {
+        	// std::move的主要作用是将其参数显式地转换为右值引用。右值引用允许我们“窃取”或“移动”资源，而不是复制它们，从而提高程序的性能和效率。
             string t = move(s);
             char base = t[0];
             for (char& ch : t) {

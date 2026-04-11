@@ -1,6 +1,14 @@
 {
   "recentFiles": [
     {
+      "basename": "Day10",
+      "path": "Diary/2026-04/Day10.md"
+    },
+    {
+      "basename": "3、枚举",
+      "path": "算法笔记/3、枚举.md"
+    },
+    {
       "basename": "Day4",
       "path": "算法笔记/Day4.md"
     },
@@ -27,10 +35,6 @@
     {
       "basename": "Day7",
       "path": "Diary/2026-04/Day7.md"
-    },
-    {
-      "basename": "3、枚举",
-      "path": "算法笔记/3、枚举.md"
     },
     {
       "basename": "做题方法论",
@@ -195,10 +199,6 @@
     {
       "basename": "测试基础——边界值分析法（黑盒）",
       "path": "Create/测试/测试基础——边界值分析法（黑盒）.md"
-    },
-    {
-      "basename": "README",
-      "path": "README.md"
     }
   ],
   "omittedPaths": [],
