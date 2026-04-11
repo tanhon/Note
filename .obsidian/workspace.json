@@ -11,10 +11,14 @@
             "id": "d7b0ee46f9c31342",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "算法笔记/Day4.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "新标签页"
+              "title": "Day4"
             }
           }
         ]
