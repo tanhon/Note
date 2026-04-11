@@ -22,7 +22,7 @@ public:
         // 下标不能冲突，用哈希表记录所有数字的出现次数，然后枚举元素和 nums[i]，用上式表示出异常值，在哈希表中寻找异常值
         // 分情况：1、找到的值正好不同于其他值，符合题目。
         //         2、找到的值和 nums[i]相等，但数量超过了 1，这个值可以是异常值，答案需要更新
-        //          3、找到的值和 nums[i]相等，但数量只有一个，这个值是“和”本身，pass
+        //          3、找到的值和 nums[i]相等，但数量只有一个，这个值是“和”本身，pass 比如[2,2,4]
         
         unordered_map<int, int> cnt;
         int sum = 0;
@@ -44,3 +44,10 @@ public:
 };
 
 ```
+
+### Two Sum：
+nums[i] + nums[j] == target  
+→ nums[i] == target - nums[j]
+### 本题 ：
+sum - nums[j] - nums[i] == nums[i]
+→ nums[j] == sum - 2 * nums[i] 
