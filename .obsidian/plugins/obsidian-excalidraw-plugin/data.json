@@ -485,7 +485,7 @@
   "markdownNodeOneClickEditing": false,
   "canvasImmersiveEmbed": true,
   "startupScriptPath": "",
-  "aiEnabled": true,
+  "aiEnabled": false,
   "openAIAPIToken": "",
   "openAIDefaultTextModel": "gpt-5-mini",
   "openAIDefaultTextModelMaxTokens": 4096,
