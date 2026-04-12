@@ -1,6 +1,10 @@
 {
   "recentFiles": [
     {
+      "basename": "Day11",
+      "path": "Diary/2026-04/Day11.md"
+    },
+    {
       "basename": "3、枚举",
       "path": "算法笔记/3、枚举.md"
     },
@@ -195,10 +199,6 @@
     {
       "basename": "“奇思妙想”系列——Day1",
       "path": "Zettelkasten/“奇思妙想”系列——Day1.md"
-    },
-    {
-      "basename": "Day17",
-      "path": "Diary/2026-03/Day17.md"
     }
   ],
   "omittedPaths": [],
