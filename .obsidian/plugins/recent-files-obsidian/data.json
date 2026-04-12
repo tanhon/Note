@@ -1,8 +1,16 @@
 {
   "recentFiles": [
     {
+      "basename": "Untitled",
+      "path": "Diary/2026-04/Untitled.md"
+    },
+    {
       "basename": "Day11",
       "path": "Diary/2026-04/Day11.md"
+    },
+    {
+      "basename": "Diary模板",
+      "path": "template/Diary模板.md"
     },
     {
       "basename": "3、枚举",
@@ -79,10 +87,6 @@
     {
       "basename": "Day3——垃圾回收机制",
       "path": "Create/JVM/Day3——垃圾回收机制.md"
-    },
-    {
-      "basename": "Diary模板",
-      "path": "template/Diary模板.md"
     },
     {
       "basename": "Day3",
@@ -195,10 +199,6 @@
     {
       "basename": "”奇思妙想“——Day2",
       "path": "Zettelkasten/”奇思妙想“——Day2.md"
-    },
-    {
-      "basename": "“奇思妙想”系列——Day1",
-      "path": "Zettelkasten/“奇思妙想”系列——Day1.md"
     }
   ],
   "omittedPaths": [],
