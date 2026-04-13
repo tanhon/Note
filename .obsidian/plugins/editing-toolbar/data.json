@@ -503,8 +503,20 @@
       "artifact": "03-agent"
     },
     "pkmer": {
-      "tokenExpiresAt": 0,
-      "userInfo": null
+      "tokenExpiresAt": 1776076227547,
+      "userInfo": {
+        "sub": "abdc6720-80a0-4e34-8218-1d98c577292a",
+        "name": "15631069973",
+        "ai_quota": {
+          "quota": 50000000,
+          "usedQuota": 0,
+          "remainingQuota": 50000000,
+          "remainingTokens": 100,
+          "requestCount": 0
+        },
+        "thino": false,
+        "supporter": false
+      }
     },
     "enableCustomModel": false,
     "customModel": {
