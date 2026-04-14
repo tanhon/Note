@@ -1,16 +1,28 @@
 {
   "recentFiles": [
     {
-      "basename": "3、枚举",
-      "path": "算法笔记/3、枚举.md"
-    },
-    {
-      "basename": "每日一问",
-      "path": "每日一问.md"
+      "basename": "4、前缀和",
+      "path": "算法笔记/4、前缀和.md"
     },
     {
       "basename": "Day13",
       "path": "Diary/2026-04/Day13.md"
+    },
+    {
+      "basename": "2、二分思想",
+      "path": "算法笔记/2、二分思想.md"
+    },
+    {
+      "basename": "3、枚举",
+      "path": "算法笔记/3、枚举.md"
+    },
+    {
+      "basename": "2、二分法.excalidraw",
+      "path": "算法笔记/2、二分法.excalidraw.md"
+    },
+    {
+      "basename": "每日一问",
+      "path": "每日一问.md"
     },
     {
       "basename": "Day12",
@@ -165,14 +177,6 @@
       "path": "算法笔记/1、滑动窗口的7种常见状态设计.md"
     },
     {
-      "basename": "2、二分法.excalidraw",
-      "path": "算法笔记/2、二分法.excalidraw.md"
-    },
-    {
-      "basename": "2、二分思想",
-      "path": "算法笔记/2、二分思想.md"
-    },
-    {
       "basename": "Day25",
       "path": "Diary/2026-03/Day25.md"
     },
@@ -195,10 +199,6 @@
     {
       "basename": "Day19",
       "path": "Diary/2026-03/Day19.md"
-    },
-    {
-      "basename": "Day18",
-      "path": "Diary/2026-03/Day18.md"
     }
   ],
   "omittedPaths": [],
