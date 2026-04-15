@@ -1,6 +1,22 @@
 {
   "recentFiles": [
     {
+      "basename": "0、与或非的几个重要应用",
+      "path": "算法笔记/0、与或非的几个重要应用.md"
+    },
+    {
+      "basename": "1、滑动窗口的7种常见状态设计",
+      "path": "算法笔记/1、滑动窗口的7种常见状态设计.md"
+    },
+    {
+      "basename": "0、集合 + 位运算",
+      "path": "算法笔记/0、集合 + 位运算.md"
+    },
+    {
+      "basename": "Day14",
+      "path": "Diary/2026-04/Day14.md"
+    },
+    {
       "basename": "4、前缀和",
       "path": "算法笔记/4、前缀和.md"
     },
@@ -51,10 +67,6 @@
     {
       "basename": "Day5",
       "path": "算法笔记/Day5.md"
-    },
-    {
-      "basename": "0、与或非的几个重要应用",
-      "path": "算法笔记/0、与或非的几个重要应用.md"
     },
     {
       "basename": "Day4",
@@ -173,10 +185,6 @@
       "path": "Diary/2026-03/Day27.md"
     },
     {
-      "basename": "1、滑动窗口的7种常见状态设计",
-      "path": "算法笔记/1、滑动窗口的7种常见状态设计.md"
-    },
-    {
       "basename": "Day25",
       "path": "Diary/2026-03/Day25.md"
     },
@@ -191,14 +199,6 @@
     {
       "basename": "Day21",
       "path": "Diary/2026-03/Day21.md"
-    },
-    {
-      "basename": "Day20",
-      "path": "Diary/2026-03/Day20.md"
-    },
-    {
-      "basename": "Day19",
-      "path": "Diary/2026-03/Day19.md"
     }
   ],
   "omittedPaths": [],
