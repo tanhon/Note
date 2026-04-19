@@ -1,16 +1,20 @@
 {
   "recentFiles": [
     {
-      "basename": "Day6",
-      "path": "算法笔记/Day6.md"
-    },
-    {
-      "basename": "Day5",
-      "path": "算法笔记/Day5.md"
+      "basename": "Day7",
+      "path": "算法笔记/有难度的题目/Day7.md"
     },
     {
       "basename": "Day17",
       "path": "Diary/2026-04/Day17.md"
+    },
+    {
+      "basename": "Day6",
+      "path": "算法笔记/有难度的题目/Day6.md"
+    },
+    {
+      "basename": "Day5",
+      "path": "算法笔记/有难度的题目/Day5.md"
     },
     {
       "basename": "Diary模板",
@@ -30,19 +34,19 @@
     },
     {
       "basename": "0、集合 + 位运算",
-      "path": "算法笔记/0、集合 + 位运算.md"
+      "path": "算法笔记/算法知识/0、集合 + 位运算.md"
     },
     {
       "basename": "0、与或非的几个重要应用",
-      "path": "算法笔记/0、与或非的几个重要应用.md"
+      "path": "算法笔记/算法知识/0、与或非的几个重要应用.md"
     },
     {
       "basename": "1、滑动窗口的7种常见状态设计",
-      "path": "算法笔记/1、滑动窗口的7种常见状态设计.md"
+      "path": "算法笔记/算法知识/1、滑动窗口的7种常见状态设计.md"
     },
     {
       "basename": "4、前缀和",
-      "path": "算法笔记/4、前缀和.md"
+      "path": "算法笔记/算法知识/4、前缀和.md"
     },
     {
       "basename": "Day13",
@@ -50,15 +54,15 @@
     },
     {
       "basename": "2、二分思想",
-      "path": "算法笔记/2、二分思想.md"
+      "path": "算法笔记/算法知识/2、二分思想.md"
     },
     {
       "basename": "3、枚举",
-      "path": "算法笔记/3、枚举.md"
+      "path": "算法笔记/算法知识/3、枚举.md"
     },
     {
       "basename": "2、二分法.excalidraw",
-      "path": "算法笔记/2、二分法.excalidraw.md"
+      "path": "算法笔记/算法知识/2、二分法.excalidraw.md"
     },
     {
       "basename": "每日一问",
@@ -86,11 +90,11 @@
     },
     {
       "basename": "Day4",
-      "path": "算法笔记/Day4.md"
+      "path": "算法笔记/有难度的题目/Day4.md"
     },
     {
       "basename": "Day2",
-      "path": "算法笔记/Day2.md"
+      "path": "算法笔记/有难度的题目/Day2.md"
     },
     {
       "basename": "Day9",
@@ -118,11 +122,11 @@
     },
     {
       "basename": "Day1",
-      "path": "算法笔记/Day1.md"
+      "path": "算法笔记/有难度的题目/Day1.md"
     },
     {
       "basename": "Day3",
-      "path": "算法笔记/Day3.md"
+      "path": "算法笔记/有难度的题目/Day3.md"
     },
     {
       "basename": "Day4",
@@ -195,10 +199,6 @@
     {
       "basename": "Day28",
       "path": "Diary/2026-03/Day28.md"
-    },
-    {
-      "basename": "Day27",
-      "path": "Diary/2026-03/Day27.md"
     }
   ],
   "omittedPaths": [],
