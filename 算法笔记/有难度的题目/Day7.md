@@ -13,3 +13,33 @@ random_id: 2088228
 
 **下标三元组** `(i, j, k)` 的值等于 `(nums[i] - nums[j]) * nums[k]` 。
 
+```cpp
+class Solution {
+public:
+    long long maximumTripletValue(vector<int>& nums) {
+
+        // 枚举 k
+        // 如果要 (nums[i] - nums[j]) * nums[k] 最大，那么 (nums[i] - nums[j]) 最大，也就是 nums[i] 最大
+        
+        // 那么 nums[j] 怎么才能最小？
+        // 其实就藏在维护 nums[i]的过程中:
+        // 情况 1：维护后的最大值 nums[i]到当前值之间还有几个值，这些值就是 nums[j]，而在遍历时我们就已经维护(nums[i] - nums[j])的最大值，自然也保证了nums[j]最小。
+         // 情况2：维护后的最大值nums[i]是当前值的前一个值，意味着没有符合条件的j。
+        
+        long long ans = 0;
+        int max_sub = 0; // 维护(nums[i] - nums[j])为最大值 
+        int max_i = 0; // 维护nums[i]为最大值
+
+        for(int k : nums){
+            ans = max(ans, 1LL * max_sub * k);  
+            max_sub = max(max_sub, max_i - k);
+            max_i = max(max_i, k);
+        }
+        return ans;
+    }
+};
+```
+
+> 枚举 k 时，j 不需要单独枚举  
+> 因为可以提前把所有 j 的最优结果压缩成 `max_sub = max(nums[i] - nums[j]) `，再直接和 nums[k] 组合。
+
