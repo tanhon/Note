@@ -1,6 +1,22 @@
 {
   "recentFiles": [
     {
+      "basename": "Day6",
+      "path": "算法笔记/Day6.md"
+    },
+    {
+      "basename": "Day5",
+      "path": "算法笔记/Day5.md"
+    },
+    {
+      "basename": "Day17",
+      "path": "Diary/2026-04/Day17.md"
+    },
+    {
+      "basename": "Diary模板",
+      "path": "template/Diary模板.md"
+    },
+    {
       "basename": "Day16",
       "path": "Diary/2026-04/Day16.md"
     },
@@ -13,16 +29,8 @@
       "path": "Diary/2026-04/Day14.md"
     },
     {
-      "basename": "Day6",
-      "path": "算法笔记/Day6.md"
-    },
-    {
       "basename": "0、集合 + 位运算",
       "path": "算法笔记/0、集合 + 位运算.md"
-    },
-    {
-      "basename": "Day5",
-      "path": "算法笔记/Day5.md"
     },
     {
       "basename": "0、与或非的几个重要应用",
@@ -71,10 +79,6 @@
     {
       "basename": "Day11",
       "path": "Diary/2026-04/Day11.md"
-    },
-    {
-      "basename": "Diary模板",
-      "path": "template/Diary模板.md"
     },
     {
       "basename": "Day10",
@@ -195,10 +199,6 @@
     {
       "basename": "Day27",
       "path": "Diary/2026-03/Day27.md"
-    },
-    {
-      "basename": "Day25",
-      "path": "Diary/2026-03/Day25.md"
     }
   ],
   "omittedPaths": [],
