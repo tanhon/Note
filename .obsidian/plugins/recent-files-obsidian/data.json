@@ -1,20 +1,40 @@
 {
   "recentFiles": [
     {
-      "basename": "3、枚举",
-      "path": "算法笔记/算法知识/3、枚举.md"
+      "basename": "Day18",
+      "path": "Diary/2026-04/Day18.md"
     },
     {
-      "basename": "4、前缀和",
-      "path": "算法笔记/算法知识/4、前缀和.md"
+      "basename": "Day17",
+      "path": "Diary/2026-04/Day17.md"
+    },
+    {
+      "basename": "Diary模板",
+      "path": "template/Diary模板.md"
+    },
+    {
+      "basename": "每日一问",
+      "path": "每日一问.md"
+    },
+    {
+      "basename": "Day16",
+      "path": "Diary/2026-04/Day16.md"
+    },
+    {
+      "basename": "Day8",
+      "path": "算法笔记/有难度的题目/Day8.md"
+    },
+    {
+      "basename": "3、枚举",
+      "path": "算法笔记/算法知识/3、枚举.md"
     },
     {
       "basename": "Day7",
       "path": "算法笔记/有难度的题目/Day7.md"
     },
     {
-      "basename": "Day17",
-      "path": "Diary/2026-04/Day17.md"
+      "basename": "4、前缀和",
+      "path": "算法笔记/算法知识/4、前缀和.md"
     },
     {
       "basename": "Day6",
@@ -23,14 +43,6 @@
     {
       "basename": "Day5",
       "path": "算法笔记/有难度的题目/Day5.md"
-    },
-    {
-      "basename": "Diary模板",
-      "path": "template/Diary模板.md"
-    },
-    {
-      "basename": "Day16",
-      "path": "Diary/2026-04/Day16.md"
     },
     {
       "basename": "Day15",
@@ -63,10 +75,6 @@
     {
       "basename": "2、二分法.excalidraw",
       "path": "算法笔记/算法知识/2、二分法.excalidraw.md"
-    },
-    {
-      "basename": "每日一问",
-      "path": "每日一问.md"
     },
     {
       "basename": "Day12",
@@ -191,14 +199,6 @@
     {
       "basename": "Day24",
       "path": "Diary/2026-03/Day24.md"
-    },
-    {
-      "basename": "Day26",
-      "path": "Diary/2026-03/Day26.md"
-    },
-    {
-      "basename": "Day28",
-      "path": "Diary/2026-03/Day28.md"
     }
   ],
   "omittedPaths": [],
