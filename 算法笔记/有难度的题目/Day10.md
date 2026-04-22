@@ -18,5 +18,38 @@ random_id: 1467533
 - 例如，`"ace"` 是 `"abcde"` 的一个子序列。
 
 
+![](attachments/枚举中间.png)
+```cpp
+class Solution {
+public:
+    int countPalindromicSubsequence(string s) {
+        int ans = 0;
+
+        // 枚举中间——a-z
+        for(char c = 'a'; c <= 'z'; c++){
+            // 左边第一个
+            int i = s.find(c);
+            // 字符串中没有这个字母,跳过 
+            if(i == -1) continue;
+            // 最右边的那个
+            int j = s.rfind(c);
+
+            //为了避免重复计数，可以用一个26字母表来标记记录过的字母
+            bool alpha[26]{};
+            for(int k = i + 1; k < j; k++){
+                if(!alpha[s[k] - 'a']){
+                    alpha[s[k] - 'a'] = true;
+                    ans++;
+                }
+            }
+        }
+
+        return ans;
+
+    }
+};
+```
+
+这个思路是最清晰的，但不容易想到。
 
 
