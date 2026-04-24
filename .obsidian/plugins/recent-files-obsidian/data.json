@@ -1,6 +1,10 @@
 {
   "recentFiles": [
     {
+      "basename": "Day22",
+      "path": "Diary/2026-04/Day22.md"
+    },
+    {
       "basename": "4、前缀和",
       "path": "算法笔记/算法知识/4、前缀和.md"
     },
@@ -195,10 +199,6 @@
     {
       "basename": "JVM是什么，怎么学习？",
       "path": "Create/JVM/JVM是什么，怎么学习？.md"
-    },
-    {
-      "basename": "Create模板",
-      "path": "template/Create模板.md"
     }
   ],
   "omittedPaths": [],
