@@ -1,6 +1,38 @@
 {
   "recentFiles": [
     {
+      "basename": "Day8",
+      "path": "算法笔记/有难度的题目/Day8.md"
+    },
+    {
+      "basename": "Day7",
+      "path": "算法笔记/有难度的题目/Day7.md"
+    },
+    {
+      "basename": "Day6",
+      "path": "算法笔记/有难度的题目/Day6.md"
+    },
+    {
+      "basename": "Day5",
+      "path": "算法笔记/有难度的题目/Day5.md"
+    },
+    {
+      "basename": "Day4",
+      "path": "算法笔记/有难度的题目/Day4.md"
+    },
+    {
+      "basename": "Day3",
+      "path": "算法笔记/有难度的题目/Day3.md"
+    },
+    {
+      "basename": "Day2",
+      "path": "算法笔记/有难度的题目/Day2.md"
+    },
+    {
+      "basename": "Day1",
+      "path": "算法笔记/有难度的题目/Day1.md"
+    },
+    {
       "basename": "Day21",
       "path": "Diary/2026-04/Day21.md"
     },
@@ -25,44 +57,12 @@
       "path": "Diary/2026-04/Day19.md"
     },
     {
-      "basename": "Day8",
-      "path": "算法笔记/有难度的题目/Day8.md"
-    },
-    {
-      "basename": "Day5",
-      "path": "算法笔记/有难度的题目/Day5.md"
-    },
-    {
-      "basename": "Day4",
-      "path": "算法笔记/有难度的题目/Day4.md"
-    },
-    {
-      "basename": "Day7",
-      "path": "算法笔记/有难度的题目/Day7.md"
-    },
-    {
-      "basename": "Day6",
-      "path": "算法笔记/有难度的题目/Day6.md"
-    },
-    {
       "basename": "3、枚举",
       "path": "算法笔记/算法知识/3、枚举.md"
     },
     {
       "basename": "4、前缀和",
       "path": "算法笔记/算法知识/4、前缀和.md"
-    },
-    {
-      "basename": "Day3",
-      "path": "算法笔记/有难度的题目/Day3.md"
-    },
-    {
-      "basename": "Day2",
-      "path": "算法笔记/有难度的题目/Day2.md"
-    },
-    {
-      "basename": "Day1",
-      "path": "算法笔记/有难度的题目/Day1.md"
     },
     {
       "basename": "0、集合 + 位运算",
