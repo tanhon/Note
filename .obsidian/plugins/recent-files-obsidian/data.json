@@ -1,6 +1,10 @@
 {
   "recentFiles": [
     {
+      "basename": "Day24",
+      "path": "Diary/2026-04/Day24.md"
+    },
+    {
       "basename": "3、枚举",
       "path": "算法笔记/算法知识/3、枚举.md"
     },
@@ -195,10 +199,6 @@
     {
       "basename": "Day1——停止记流水账，只记录触动自己的地方",
       "path": "Diary/2026-04/Day1——停止记流水账，只记录触动自己的地方.md"
-    },
-    {
-      "basename": "JVM模板",
-      "path": "template/JVM模板.md"
     }
   ],
   "omittedPaths": [],
