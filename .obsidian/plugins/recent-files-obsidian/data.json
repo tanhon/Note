@@ -1,6 +1,10 @@
 {
   "recentFiles": [
     {
+      "basename": "Day26",
+      "path": "Diary/2026-04/Day26.md"
+    },
+    {
       "basename": "Day25",
       "path": "Diary/2026-04/Day25.md"
     },
@@ -195,10 +199,6 @@
     {
       "basename": "Day2——虚拟机栈",
       "path": "Create/JVM/Day2——虚拟机栈.md"
-    },
-    {
-      "basename": "Day1——程序计数器",
-      "path": "Create/JVM/Day1——程序计数器.md"
     }
   ],
   "omittedPaths": [],
