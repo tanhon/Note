@@ -5,6 +5,10 @@
       "path": "Diary/2026-04/2026年4月月度总结.md"
     },
     {
+      "basename": "四月份个人总结",
+      "path": "Diary/2026-04/四月份个人总结.md"
+    },
+    {
       "basename": "冥想",
       "path": "Diary/冥想.md"
     },
@@ -195,10 +199,6 @@
     {
       "basename": "Day5",
       "path": "Diary/2026-04/Day5.md"
-    },
-    {
-      "basename": "Day4",
-      "path": "Diary/2026-04/Day4.md"
     }
   ],
   "omittedPaths": [],
