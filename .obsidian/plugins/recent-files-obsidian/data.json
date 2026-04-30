@@ -1,6 +1,10 @@
 {
   "recentFiles": [
     {
+      "basename": "Day11",
+      "path": "算法笔记/有难度的题目/Day11.md"
+    },
+    {
       "basename": "2026年4月月度总结",
       "path": "Diary/2026-04/2026年4月月度总结.md"
     },
@@ -195,10 +199,6 @@
     {
       "basename": "Day6",
       "path": "Diary/2026-04/Day6.md"
-    },
-    {
-      "basename": "Day5",
-      "path": "Diary/2026-04/Day5.md"
     }
   ],
   "omittedPaths": [],
