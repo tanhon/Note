@@ -1,8 +1,12 @@
 {
   "recentFiles": [
     {
-      "basename": "Day27",
-      "path": "Diary/2026-04/Day27.md"
+      "basename": "冥想",
+      "path": "Diary/冥想.md"
+    },
+    {
+      "basename": "Day22",
+      "path": "Diary/2026-04/Day22.md"
     },
     {
       "basename": "Day26",
@@ -11,6 +15,26 @@
     {
       "basename": "Day25",
       "path": "Diary/2026-04/Day25.md"
+    },
+    {
+      "basename": "Day23",
+      "path": "Diary/2026-04/Day23.md"
+    },
+    {
+      "basename": "Day21",
+      "path": "Diary/2026-04/Day21.md"
+    },
+    {
+      "basename": "Day19",
+      "path": "Diary/2026-04/Day19.md"
+    },
+    {
+      "basename": "Day28",
+      "path": "Diary/2026-04/Day28.md"
+    },
+    {
+      "basename": "Day27",
+      "path": "Diary/2026-04/Day27.md"
     },
     {
       "basename": "Day8",
@@ -41,20 +65,12 @@
       "path": "Diary/2026-04/Day24.md"
     },
     {
-      "basename": "Day23",
-      "path": "Diary/2026-04/Day23.md"
-    },
-    {
       "basename": "Diary模板",
       "path": "template/Diary模板.md"
     },
     {
       "basename": "2、二分思想",
       "path": "算法笔记/算法知识/2、二分思想.md"
-    },
-    {
-      "basename": "Day22",
-      "path": "Diary/2026-04/Day22.md"
     },
     {
       "basename": "Day7",
@@ -85,16 +101,8 @@
       "path": "算法笔记/有难度的题目/Day1.md"
     },
     {
-      "basename": "Day21",
-      "path": "Diary/2026-04/Day21.md"
-    },
-    {
       "basename": "Day20",
       "path": "Diary/2026-04/Day20.md"
-    },
-    {
-      "basename": "Day19",
-      "path": "Diary/2026-04/Day19.md"
     },
     {
       "basename": "0、集合 + 位运算",
@@ -191,14 +199,6 @@
     {
       "basename": "Day3——垃圾回收机制",
       "path": "Create/JVM/Day3——垃圾回收机制.md"
-    },
-    {
-      "basename": "Day3",
-      "path": "Diary/2026-04/Day3.md"
-    },
-    {
-      "basename": "Day2",
-      "path": "Diary/2026-04/Day2.md"
     }
   ],
   "omittedPaths": [],
