@@ -1,6 +1,10 @@
 {
   "recentFiles": [
     {
+      "basename": "2026年4月月度总结",
+      "path": "Diary/2026-04/2026年4月月度总结.md"
+    },
+    {
       "basename": "冥想",
       "path": "Diary/冥想.md"
     },
@@ -195,10 +199,6 @@
     {
       "basename": "Day4",
       "path": "Diary/2026-04/Day4.md"
-    },
-    {
-      "basename": "Day3——垃圾回收机制",
-      "path": "Create/JVM/Day3——垃圾回收机制.md"
     }
   ],
   "omittedPaths": [],

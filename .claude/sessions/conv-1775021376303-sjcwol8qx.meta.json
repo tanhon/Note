@@ -3,20 +3,20 @@
   "title": "请结合文件夹中每一天的记录文件进行总结，总结文件放置在该文件夹下。总结内容尽可能简练全面，条理清晰",
   "titleGenerationStatus": "failed",
   "createdAt": 1775021376303,
-  "updatedAt": 1775021665278,
-  "lastResponseAt": 1775021665278,
+  "updatedAt": 1777543006913,
+  "lastResponseAt": 1777543006913,
   "sessionId": "fb6d36be-cccb-4a6e-9678-2a8895353ebb",
   "sdkSessionId": "fb6d36be-cccb-4a6e-9678-2a8895353ebb",
   "externalContextPaths": [
-    "D:\\Notes\\Diary\\2026-03"
+    "D:\\Notes\\Diary\\2026-04"
   ],
   "usage": {
     "model": "opus",
-    "inputTokens": 18973,
+    "inputTokens": 31498,
     "cacheCreationInputTokens": 0,
     "cacheReadInputTokens": 0,
     "contextWindow": 200000,
-    "contextTokens": 18973,
-    "percentage": 9
+    "contextTokens": 31498,
+    "percentage": 16
   }
 }
