@@ -1,6 +1,22 @@
 {
   "recentFiles": [
     {
+      "basename": "Day13",
+      "path": "算法笔记/有难度的题目/Day13.md"
+    },
+    {
+      "basename": "Day12",
+      "path": "算法笔记/有难度的题目/Day12.md"
+    },
+    {
+      "basename": "Day12.excalidraw",
+      "path": "算法笔记/有难度的题目/attachments/Day12.excalidraw.md"
+    },
+    {
+      "basename": "Day1",
+      "path": "Diary/2026-05/Day1.md"
+    },
+    {
       "basename": "Day11",
       "path": "算法笔记/有难度的题目/Day11.md"
     },
@@ -183,22 +199,6 @@
     {
       "basename": "Day9",
       "path": "Diary/2026-04/Day9.md"
-    },
-    {
-      "basename": "Reference_base",
-      "path": "BASE/Reference_base.base"
-    },
-    {
-      "basename": "Day8",
-      "path": "Diary/2026-04/Day8.md"
-    },
-    {
-      "basename": "Day7",
-      "path": "Diary/2026-04/Day7.md"
-    },
-    {
-      "basename": "Day6",
-      "path": "Diary/2026-04/Day6.md"
     }
   ],
   "omittedPaths": [],
