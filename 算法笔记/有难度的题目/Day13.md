@@ -10,7 +10,7 @@ random_id: 9974596
 
 子数组是数组中元素的连续非空序列。
 
-<font color="#ffc000">子数组之和：这种问题都可以优先考虑前缀和、后缀和的思想。</font>
+<font color="#ffc000">子数组之和：这种问题都可以优先考虑前缀和、后缀和的思想。有时也可以是滑动窗口。</font>
 <font color="#ffc000">统计个数：因为统计的对象是无序的，所以如果范围比较小，可以直接使用数组，但这里范围比较大，采用哈希表更省空间。</font>
 
 我们知道，子数组之和意味着：
@@ -127,4 +127,28 @@ for (int i = 0; i < n; i++) {
 答：哈希表变成有序的红黑树，unordered_map 换成 map，这样 key 从匹配 s-k 到能匹配>=s - k 的所有方案，还可以用二分查到边界 lower_bound。  
 
 5.改成计算元素和为奇数的子数组个数，要怎么做？  
-答：哈希表的 key 不存具体某个 s 的个数，而是存奇和偶的个数，遇到奇偶个数加一。
+答：哈希表的 key 不存具体某个 s 的个数，而是存奇和偶（0 代表偶，1 代表奇）的个数，遇到奇偶个数加一。遍历到一个奇数就 ans += cnt[0]; 遍历到的是偶数就 ans += cnt[1]。因为奇-奇=偶，偶-偶=偶，只有奇-偶=奇，偶-奇=奇。
+```cpp
+class Solution {
+public:
+ int numOfSubarrays(vector<int>& arr) {
+ 		const int mod = 1e9+7;
+ 		int cnt[2] = {1,0}; // 前缀和cnt[0] = 1
+ 		int pre_sum = 0;
+ 		long long ans = 0;
+ 		
+ 		for(int i = 0; i < arr.size(); i++){
+        	pre_sum += arr[i];
+        	
+ 			if(pre_sum % 2 == 1){
+         	    ans += cnt[0]; // 奇数找偶数
+           	}
+ 			else{
+                ans += cnt[1]; // 偶数找奇数
+            }
+ 			cnt[pre_sum % 2]++;
+      	}
+ 		return ans % mod;
+	}
+};
+```
