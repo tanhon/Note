@@ -1,6 +1,10 @@
 {
   "recentFiles": [
     {
+      "basename": "Day4",
+      "path": "Diary/2026-05/Day4.md"
+    },
+    {
       "basename": "Day3",
       "path": "Diary/2026-05/Day3.md"
     },
@@ -195,10 +199,6 @@
     {
       "basename": "完美主义的应对策略",
       "path": "Diary/完美主义的应对策略.md"
-    },
-    {
-      "basename": "做题方法论",
-      "path": "Diary/做题方法论.md"
     }
   ],
   "omittedPaths": [],
