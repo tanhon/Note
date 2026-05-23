@@ -1,6 +1,10 @@
 {
   "recentFiles": [
     {
+      "basename": "数学建模论文",
+      "path": "数学建模论文.md"
+    },
+    {
       "basename": "Day5",
       "path": "Diary/2026-05/Day5.md"
     },
@@ -195,10 +199,6 @@
     {
       "basename": "2、二分法.excalidraw",
       "path": "算法笔记/算法知识/2、二分法.excalidraw.md"
-    },
-    {
-      "basename": "Day12",
-      "path": "Diary/2026-04/Day12.md"
     }
   ],
   "omittedPaths": [],
