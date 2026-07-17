@@ -437,19 +437,92 @@ function capitalizeMidSentence(ctx) {
   }
   return { ...ctx, content };
 }
+function isCJKContext(ch) {
+  const cat = classifyChar(ch);
+  if (cat === "chinese" /* Chinese */ || cat === "japanese" /* Japanese */ || cat === "korean" /* Korean */) {
+    return true;
+  }
+  if (ch.length > 0) {
+    const code = ch.charCodeAt(0);
+    if (code >= 12288 && code <= 12351 || code >= 65281 && code <= 65295 || code >= 65306 && code <= 65312 || code >= 65339 && code <= 65344 || code >= 65371 && code <= 65376 || code >= 65504 && code <= 65510 || code >= 65072 && code <= 65103) {
+      return true;
+    }
+  }
+  return false;
+}
 function findTokenBounds(content, pos) {
+  pos = Math.max(0, Math.min(pos, content.length));
+  let refIdx = pos > 0 ? pos - 1 : 0;
+  if (refIdx >= content.length)
+    refIdx = content.length - 1;
+  if (refIdx < 0)
+    return [0, 0];
+  const refIsCJK = isCJKContext(content.charAt(refIdx));
   let left = pos;
   while (left > 0 && !/[\s\0]/.test(content.charAt(left - 1))) {
+    const ch = content.charAt(left - 1);
+    const isCJK = isCJKContext(ch);
+    if (!isCJK && !/\w/.test(ch))
+      break;
+    if (isCJK !== refIsCJK)
+      break;
     left--;
   }
   let right = pos;
   while (right < content.length && !/[\s\0]/.test(content.charAt(right))) {
+    const ch = content.charAt(right);
+    const isCJK = isCJKContext(ch);
+    if (!isCJK && !/\w/.test(ch))
+      break;
+    if (isCJK !== refIsCJK)
+      break;
     right++;
   }
   return [left, right];
 }
 function extractToken(content, left, right) {
   return content.substring(left, right).replace(/\0/g, "");
+}
+function extendCursorTokenForDict(content, seedL, seedR, prefixDict, usePrefix) {
+  const seedToken = extractToken(content, seedL, seedR);
+  let runL = seedL;
+  while (runL > 0) {
+    const ch = content.charAt(runL - 1);
+    if (/[\s\0]/.test(ch) || !/\w/.test(ch) && !isCJKContext(ch))
+      break;
+    runL--;
+  }
+  let runR = seedR;
+  while (runR < content.length) {
+    const ch = content.charAt(runR);
+    if (/[\s\0]/.test(ch) || !/\w/.test(ch) && !isCJKContext(ch))
+      break;
+    runR++;
+  }
+  let bestL = seedL, bestR = seedR, bestToken = seedToken;
+  let bestMatched = prefixDict.shouldSuppressSpace(seedToken, usePrefix);
+  let bestSpan = bestMatched ? seedR - seedL : -1;
+  for (let l = seedL; l >= runL; l--) {
+    for (let r = seedR; r <= runR; r++) {
+      if (l === seedL && r === seedR)
+        continue;
+      const token = extractToken(content, l, r);
+      if (prefixDict.shouldSuppressSpace(token, usePrefix)) {
+        const span = r - l;
+        if (span > bestSpan) {
+          bestL = l;
+          bestR = r;
+          bestToken = token;
+          bestMatched = true;
+          bestSpan = span;
+        }
+      }
+    }
+  }
+  if (!bestMatched) {
+    return { left: seedL, right: seedR, token: seedToken };
+  }
+  return { left: bestL, right: bestR, token: bestToken };
 }
 function collectAllBoundaries(content, languagePairs, customCategories) {
   const positions = /* @__PURE__ */ new Set();
@@ -467,12 +540,111 @@ function collectAllBoundaries(content, languagePairs, customCategories) {
   }
   return positions;
 }
+var FORMATTING_CHARS_RE = /[*_~`^]/;
+function isFormattingChar(ch) {
+  return FORMATTING_CHARS_RE.test(ch);
+}
+function collectFormattingSeparatedBoundaries(content, languagePairs, customCategories) {
+  const positions = /* @__PURE__ */ new Set();
+  if (!FORMATTING_CHARS_RE.test(content))
+    return positions;
+  const pairTests = [];
+  for (const pair of languagePairs) {
+    const classA = resolveCharClass(pair.a, customCategories);
+    const classB = resolveCharClass(pair.b, customCategories);
+    if (!classA || !classB)
+      continue;
+    const regA = new RegExp(`^[${classA}]$`);
+    const regB = new RegExp(`^[${classB}]$`);
+    pairTests.push({
+      test(a, b) {
+        return regA.test(a) && regB.test(b) || regA.test(b) && regB.test(a);
+      }
+    });
+  }
+  if (pairTests.length === 0)
+    return positions;
+  const len = content.length;
+  let i = 0;
+  while (i < len) {
+    if (!isFormattingChar(content[i])) {
+      i++;
+      continue;
+    }
+    let blockStart = i;
+    while (blockStart > 0 && isFormattingChar(content[blockStart - 1])) {
+      blockStart--;
+    }
+    let blockEnd = i;
+    while (blockEnd < len - 1 && isFormattingChar(content[blockEnd + 1])) {
+      blockEnd++;
+    }
+    i = blockEnd + 1;
+    let leftIdx = blockStart - 1;
+    while (leftIdx >= 0 && (isFormattingChar(content[leftIdx]) || content[leftIdx] === "\0")) {
+      leftIdx--;
+    }
+    if (leftIdx < 0)
+      continue;
+    let rightIdx = blockEnd + 1;
+    while (rightIdx < len && (isFormattingChar(content[rightIdx]) || content[rightIdx] === "\0")) {
+      rightIdx++;
+    }
+    if (rightIdx >= len)
+      continue;
+    const leftChar = content[leftIdx];
+    const rightChar = content[rightIdx];
+    let pairMatched = false;
+    for (const pt of pairTests) {
+      if (pt.test(leftChar, rightChar)) {
+        pairMatched = true;
+        break;
+      }
+    }
+    if (!pairMatched)
+      continue;
+    const fmtChar = content[blockStart];
+    let matchedLeftDist = -1;
+    let matchedRightDist = -1;
+    for (let j = blockStart - 1; j >= 0; j--) {
+      if (content[j] === fmtChar) {
+        matchedLeftDist = blockStart - j;
+        break;
+      }
+      if (/[\s\0]/.test(content[j]))
+        break;
+    }
+    for (let j = blockEnd + 1; j < len; j++) {
+      if (content[j] === fmtChar) {
+        matchedRightDist = j - blockEnd;
+        break;
+      }
+      if (/[\s\0]/.test(content[j]))
+        break;
+    }
+    if (matchedLeftDist >= 0 && (matchedRightDist < 0 || matchedLeftDist <= matchedRightDist)) {
+      positions.add(blockEnd + 1);
+    } else if (matchedRightDist >= 0) {
+      positions.add(blockStart);
+    } else {
+      if (isCJKContext(leftChar))
+        positions.add(blockStart);
+      if (isCJKContext(rightChar))
+        positions.add(blockEnd + 1);
+    }
+  }
+  return positions;
+}
 function applyLanguagePairSpacing(ctx, languagePairs, prefixDict, customCategories, debug) {
   let { content, curCh, prevCh, offset } = ctx;
   if (!isParamDefined(prevCh))
     return ctx;
   const cursorInContent = curCh - offset;
   const allBoundaries = collectAllBoundaries(content, languagePairs, customCategories);
+  const fmtBoundaries = collectFormattingSeparatedBoundaries(content, languagePairs, customCategories);
+  for (const pos of fmtBoundaries) {
+    allBoundaries.add(pos);
+  }
   if (allBoundaries.size === 0)
     return ctx;
   let [tokLeft, tokRight] = findTokenBounds(content, cursorInContent);
@@ -491,39 +663,43 @@ function applyLanguagePairSpacing(ctx, languagePairs, prefixDict, customCategori
   }
   const isActivelyTyping = curCh !== prevCh;
   const usePrefix = isActivelyTyping && !tokenIsFinalized;
-  const cursorTokenSuppressed = prefixDict.shouldSuppressSpace(cursorToken, usePrefix);
+  const extended = extendCursorTokenForDict(content, tokLeft, tokRight, prefixDict, usePrefix);
+  let tokLeftExt = extended.left;
+  let tokRightExt = extended.right;
+  let cursorTokenExt = extended.token;
+  const cursorTokenSuppressed = prefixDict.shouldSuppressSpace(cursorTokenExt, usePrefix);
   let protectedUpTo = -1;
   if (cursorTokenSuppressed) {
-    protectedUpTo = cursorToken.length;
+    protectedUpTo = cursorTokenExt.length;
   } else {
-    const matchLen = prefixDict.findLongestMatchFromStart(cursorToken);
-    if (matchLen > 0 && matchLen < cursorToken.length) {
-      const lastCharOfMatch = cursorToken.charAt(matchLen - 1);
-      const firstCharAfterMatch = cursorToken.charAt(matchLen);
+    const matchLen = prefixDict.findLongestMatchFromStart(cursorTokenExt);
+    if (matchLen > 0 && matchLen < cursorTokenExt.length) {
+      const lastCharOfMatch = cursorTokenExt.charAt(matchLen - 1);
+      const firstCharAfterMatch = cursorTokenExt.charAt(matchLen);
       if (classifyChar(lastCharOfMatch) !== classifyChar(firstCharAfterMatch)) {
         protectedUpTo = matchLen;
       }
     }
   }
   if (debug) {
-    console.log("[LangPairSpacing] content:", JSON.stringify(content), "curCh:", curCh, "prevCh:", prevCh, "offset:", offset, "cursorInContent:", cursorInContent, "boundaries:", Array.from(allBoundaries), "tokenBounds:", [tokLeft, tokRight], "cursorToken:", JSON.stringify(cursorToken), "suppressed:", cursorTokenSuppressed, "protectedUpTo:", protectedUpTo);
+    console.log("[LangPairSpacing] content:", JSON.stringify(content), "curCh:", curCh, "prevCh:", prevCh, "offset:", offset, "cursorInContent:", cursorInContent, "boundaries:", Array.from(allBoundaries), "tokenBounds:", [tokLeft, tokRight], "cursorToken:", JSON.stringify(cursorToken), "tokenBoundsExt:", [tokLeftExt, tokRightExt], "cursorTokenExt:", JSON.stringify(cursorTokenExt), "suppressed:", cursorTokenSuppressed, "protectedUpTo:", protectedUpTo);
   }
   const toInsert = [];
   const prevChInContent = prevCh - offset;
   let prefixDictExpired = false;
   if (!cursorTokenSuppressed) {
-    if (isActivelyTyping && prevChInContent > tokLeft) {
-      const prevToken = cursorToken.substring(0, prevChInContent - tokLeft);
+    if (isActivelyTyping && prevChInContent > tokLeftExt) {
+      const prevToken = cursorTokenExt.substring(0, prevChInContent - tokLeftExt);
       prefixDictExpired = prefixDict.shouldSuppressSpace(prevToken, true);
     } else if (!isActivelyTyping || tokenIsFinalized) {
-      prefixDictExpired = prefixDict.shouldSuppressSpace(cursorToken, true);
+      prefixDictExpired = prefixDict.shouldSuppressSpace(cursorTokenExt, true);
     }
   }
   for (const pos of allBoundaries) {
-    const inCursorToken = pos >= tokLeft && pos < tokRight;
+    const inCursorToken = pos >= tokLeftExt && pos < tokRightExt;
     if (inCursorToken) {
-      const posInToken = pos - tokLeft;
-      if (posInToken < protectedUpTo) {
+      const posInToken = pos - tokLeftExt;
+      if (posInToken > 0 && posInToken < protectedUpTo) {
         continue;
       }
       if (pos >= prevChInContent && pos < cursorInContent || prefixDictExpired) {
@@ -531,9 +707,9 @@ function applyLanguagePairSpacing(ctx, languagePairs, prefixDict, customCategori
       }
     } else {
       if (pos >= prevChInContent && pos < cursorInContent) {
-        const [tl, tr] = findTokenBounds(content, pos);
-        const token = extractToken(content, tl, tr);
-        if (!prefixDict.shouldSuppressSpace(token, false)) {
+        const [seedL, seedR] = findTokenBounds(content, pos);
+        const ext = extendCursorTokenForDict(content, seedL, seedR, prefixDict, false);
+        if (!prefixDict.shouldSuppressSpace(ext.token, false)) {
           toInsert.push(pos);
         }
       }
@@ -3442,7 +3618,7 @@ var RuleEngine = class {
   findMatchingBrace(text, openIdx) {
     let depth = 1;
     for (let i = openIdx + 1; i < text.length; i++) {
-      if (text[i] === "{" && i > 0 && text[i - 1] === "$")
+      if (text[i] === "{")
         depth++;
       else if (text[i] === "}") {
         depth--;
@@ -5240,6 +5416,7 @@ var RuleManager = class {
     this.cachedBuiltinRules = [];
     this.cachedUserRules = [];
     this.previousStoragePath = "";
+    this.lastSaveTime = 0;
     this.BUILTIN_RULES_FILE = "builtin-rules.json";
     this.USER_RULES_FILE = "user-rules.json";
     this.previousStoragePath = settings.rulesStoragePath;
@@ -5262,7 +5439,7 @@ var RuleManager = class {
   }
   pluginPath(filename) {
     const base = this.settings.rulesStoragePath ? this.settings.rulesStoragePath : this.manifest.dir;
-    return `${base}/${filename}`;
+    return `${base}/${filename}`.replace(/\/+/g, "/");
   }
   async loadRulesFile(filename) {
     const path = this.pluginPath(filename);
@@ -5275,6 +5452,7 @@ var RuleManager = class {
   }
   async saveRulesFile(filename, rules) {
     const path = this.pluginPath(filename);
+    this.lastSaveTime = Date.now();
     await this.app.vault.adapter.write(path, JSON.stringify(rules, null, 2));
   }
   async mergeBuiltinRules() {
@@ -7248,6 +7426,7 @@ var EasyTypingPlugin = class extends import_obsidian9.Plugin {
   constructor() {
     super(...arguments);
     this.pasteTimerId = null;
+    this.configReloadTimerId = null;
     this.getDefaultIndentChar = () => {
       let useTab = this.app.vault.config.useTab === void 0 ? true : false;
       let tabSize = this.app.vault.config.tabSize == void 0 ? 4 : this.app.vault.config.tabSize;
@@ -7429,6 +7608,9 @@ var EasyTypingPlugin = class extends import_obsidian9.Plugin {
       hotkeys: [{ modifiers: ["Mod"], key: "/" }]
     });
     this.addSettingTab(new EasyTypingSettingTab(this.app, this));
+    this.registerEvent(this.app.vault.on("raw", (path) => {
+      this.onConfigFileChange(path);
+    }));
     this.registerEvent(this.app.workspace.on("active-leaf-change", (leaf) => {
       var _a;
       if (leaf.view.getViewType() == "markdown") {
@@ -7456,7 +7638,30 @@ var EasyTypingPlugin = class extends import_obsidian9.Plugin {
   onunload() {
     if (this.pasteTimerId)
       clearTimeout(this.pasteTimerId);
+    if (this.configReloadTimerId)
+      clearTimeout(this.configReloadTimerId);
     console.log("Easy Typing Plugin unloaded.");
+  }
+  onConfigFileChange(path) {
+    if (Date.now() - this.ruleManager.lastSaveTime < 2e3)
+      return;
+    const builtinRulesPath = this.ruleManager.pluginPath("builtin-rules.json");
+    const userRulesPath = this.ruleManager.pluginPath("user-rules.json");
+    if (path !== builtinRulesPath && path !== userRulesPath)
+      return;
+    if (this.configReloadTimerId)
+      clearTimeout(this.configReloadTimerId);
+    this.configReloadTimerId = setTimeout(async () => {
+      this.configReloadTimerId = null;
+      try {
+        await this.ruleManager.initRuleEngine();
+        if (this.settings.debug) {
+          console.log("[EasyTyping] Rules reloaded from external change:", path);
+        }
+      } catch (e) {
+        console.error("[EasyTyping] Failed to reload rules:", e);
+      }
+    }, 1e3);
   }
   markPaste(plain) {
     this.pasteDetected = true;
