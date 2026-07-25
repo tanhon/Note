@@ -517,9 +517,10 @@ user_name → userName
 XML：
 
 ```xml
+<!-- useGeneratedKeys 获取数据库生成的主键；keyProperty 指定写回的 Java 属性 -->
 <insert id="insert"
-        useGeneratedKeys="true"   <!-- 开启自动获取主键 -->
-        keyProperty="id">		  <!-- 把主键值赋给该属性 -->
+        useGeneratedKeys="true"
+        keyProperty="id">
     insert into user(username, password, name, age)
     values(
         #{username},
@@ -957,3 +958,13 @@ public UserServiceImpl(UserMapper userMapper) {
 - [MyBatis Mapper XML](https://mybatis.org/mybatis-3/sqlmap-xml.html)
 - [MyBatis 动态 SQL](https://mybatis.org/mybatis-3/dynamic-sql.html)
 - [MyBatis Spring Boot Starter](https://mybatis.org/spring-boot-starter/mybatis-spring-boot-autoconfigure/)
+
+
+---
+
+## 继续学习
+
+- [[4、SpringBoot配置文件与日志]]
+- [[6、分页查询与PageHelper]]
+
+- [[0、SpringBoot笔记目录与学习路线|返回笔记目录]]

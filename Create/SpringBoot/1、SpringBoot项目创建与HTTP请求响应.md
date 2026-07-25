@@ -1,4 +1,4 @@
-> 适合初学者。本文以 IntelliJ IDEA、Maven、Java 17 和 Spring Boot 3.x 为例。
+> 适合初学者。本文以 IntelliJ IDEA、Maven、JDK 21 和 Spring Boot 4.x 为例；Spring Boot 3.x 的核心用法基本相同。
 
 ## 1. 先理解整体流程
 
@@ -22,7 +22,7 @@
 
 需要安装：
 
-- JDK 17 或更高版本
+- JDK 21
 - IntelliJ IDEA
 - Maven（IDEA 通常已经内置）
 
@@ -39,8 +39,8 @@ File → Project Structure → Project → SDK
 3. 填写项目信息：
    - Language：`Java`
    - Type：`Maven`
-   - JDK：`17` 或更高
-   - Spring Boot：选择 `3.x` 的稳定版本
+   - JDK：`21`
+   - Spring Boot：选择与 JDK 21 兼容的 `4.x` 稳定版本
    - Group：`com.example`
    - Artifact：`demo`
 4. 选择依赖 `Spring Web`。
@@ -218,12 +218,14 @@ HTTP 请求是**客户端发送给服务器的数据**，表示客户端想做�
 POST /users HTTP/1.1
 Host: localhost:8080
 Content-Type: application/json
-                                 <!--这里一定是空一行-->
+
 {
   "name": "小明",
   "age": 20
 }
 ```
+
+> **注意：** HTTP 请求头与请求体之间必须真正空一行，不要在空行中写注释。
 
 ### 4.1 常用请求方法
 
@@ -340,6 +342,8 @@ public String getUser(@PathVariable Long id) {
 `10` 会被赋值给参数 `id`。
 
 ### 5.3 JSON 请求体：`@RequestBody`
+
+> **学习阶段说明：** 这里直接用 `User` 接收和返回数据，是为了先理解 JSON 与 Java 对象的转换。正式项目通常改用请求 DTO 和响应 DTO，避免数据库实体与接口绑定，详见 [[5、Web接口工程化基础：DTO、校验、异常与跨域]]。
 
 在 `com.example.demo.model` 包中新建 `User.java`。Java 17 可以使用 `record` 简洁地定义数据类：
 
@@ -686,3 +690,14 @@ URL 和请求方法决定执行哪个 Controller 方法；
 6. `@RequestParam`、`@PathVariable`、`@RequestBody` 分别获取哪里的数据？
 7. 状态码 `200`、`404`、`500` 分别表示什么？
 8. 为什么浏览器地址栏不适合测试 JSON `POST` 请求？
+
+
+---
+
+## 继续学习
+
+- [[2、Spring三层架构、内聚与耦合、IoC与DI]]
+- [[4、SpringBoot配置文件与日志]]
+- [[5、Web接口工程化基础：DTO、校验、异常与跨域]]
+
+- [[0、SpringBoot笔记目录与学习路线|返回笔记目录]]

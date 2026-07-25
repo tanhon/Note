@@ -678,7 +678,7 @@ public UserServiceImpl(
 
 ### 使用 `@Resource`
 
-按照 bean 的名称进行注入。通过 name 属性指定要注入的 bean 的名称。​
+`@Resource(name = "...")` 可以明确按 Bean 名称注入；未显式指定 `name` 时，Spring 通常先按默认名称查找，找不到时再尝试按类型匹配。​
 
 ```java 
 @RestController​
@@ -687,7 +687,7 @@ public class UserController {​
 	private UserService userService;​
 ```
 
-<font color="#e36c09">​面试题：@Autowird 与 @Resource 的区别​</font>
+<font color="#e36c09">​面试题：@Autowired 与 @Resource 的区别​</font>
 <font color="#e36c09">@Autowired 是 spring 框架提供的注解，而@Resource 是 JDK 提供的注解​</font>
 <font color="#e36c09">@Autowired 默认是按照类型注入，而@Resource 是按照名称注入</font>
 
@@ -985,3 +985,13 @@ public record UserResponse(
 ## 23. 一句话总结
 
 > 三层架构通过 Controller、Service、Dao 分离请求、业务和数据职责；高内聚要求每一层专注自己的工作，低耦合要求上层依赖接口而不是具体实现；IoC 将对象创建权交给 Spring，DI 则由 Spring 将各层需要的依赖通过构造器注入，从而让代码更容易替换、测试和维护。
+
+
+---
+
+## 继续学习
+
+- [[3、MyBatis知识点总结]]
+- [[5、Web接口工程化基础：DTO、校验、异常与跨域]]
+
+- [[0、SpringBoot笔记目录与学习路线|返回笔记目录]]
