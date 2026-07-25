@@ -5,6 +5,14 @@
       "path": "Create/SpringBoot/1、SpringBoot项目创建与HTTP请求响应.md"
     },
     {
+      "basename": "4、SpringBoot配置文件与日志",
+      "path": "Create/SpringBoot/4、SpringBoot配置文件与日志.md"
+    },
+    {
+      "basename": "0、SpringBoot笔记目录与学习路线",
+      "path": "Create/SpringBoot/0、SpringBoot笔记目录与学习路线.md"
+    },
+    {
       "basename": "3、MyBatis知识点总结",
       "path": "Create/SpringBoot/3、MyBatis知识点总结.md"
     },
@@ -191,14 +199,6 @@
     {
       "basename": "Day14",
       "path": "Diary/2026-04/Day14.md"
-    },
-    {
-      "basename": "0、与或非的几个重要应用",
-      "path": "算法笔记/算法知识/0、与或非的几个重要应用.md"
-    },
-    {
-      "basename": "1、滑动窗口的7种常见状态设计",
-      "path": "算法笔记/算法知识/1、滑动窗口的7种常见状态设计.md"
     }
   ],
   "omittedPaths": [],
