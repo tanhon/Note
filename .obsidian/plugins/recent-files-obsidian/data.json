@@ -1,6 +1,10 @@
 {
   "recentFiles": [
     {
+      "basename": "6、分页查询与PageHelper",
+      "path": "Create/SpringBoot/6、分页查询与PageHelper.md"
+    },
+    {
       "basename": "1、SpringBoot项目创建与HTTP请求响应",
       "path": "Create/SpringBoot/1、SpringBoot项目创建与HTTP请求响应.md"
     },
@@ -195,10 +199,6 @@
     {
       "basename": "Day15",
       "path": "Diary/2026-04/Day15.md"
-    },
-    {
-      "basename": "Day14",
-      "path": "Diary/2026-04/Day14.md"
     }
   ],
   "omittedPaths": [],
