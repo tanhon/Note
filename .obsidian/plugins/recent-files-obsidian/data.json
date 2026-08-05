@@ -1,10 +1,6 @@
 {
   "recentFiles": [
     {
-      "basename": "Day1——程序计数器",
-      "path": "Create/JVM/Day1——程序计数器.md"
-    },
-    {
       "basename": "0、SpringBoot笔记目录与学习路线",
       "path": "Create/SpringBoot/0、SpringBoot笔记目录与学习路线.md"
     },
@@ -199,6 +195,10 @@
     {
       "basename": "Day16",
       "path": "Diary/2026-04/Day16.md"
+    },
+    {
+      "basename": "Day15",
+      "path": "Diary/2026-04/Day15.md"
     }
   ],
   "omittedPaths": [],
