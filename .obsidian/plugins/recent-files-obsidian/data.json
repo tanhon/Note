@@ -1,6 +1,14 @@
 {
   "recentFiles": [
     {
+      "basename": "0、SpringBoot笔记目录与学习路线",
+      "path": "Create/SpringBoot/0、SpringBoot笔记目录与学习路线.md"
+    },
+    {
+      "basename": "怎么复习？",
+      "path": "算法笔记/有难度的题目/怎么复习？.md"
+    },
+    {
       "basename": "6、分页查询与PageHelper",
       "path": "Create/SpringBoot/6、分页查询与PageHelper.md"
     },
@@ -11,10 +19,6 @@
     {
       "basename": "4、SpringBoot配置文件与日志",
       "path": "Create/SpringBoot/4、SpringBoot配置文件与日志.md"
-    },
-    {
-      "basename": "0、SpringBoot笔记目录与学习路线",
-      "path": "Create/SpringBoot/0、SpringBoot笔记目录与学习路线.md"
     },
     {
       "basename": "1、SpringBoot项目创建与HTTP请求响应",
@@ -131,10 +135,6 @@
     {
       "basename": "3、枚举",
       "path": "算法笔记/算法知识/3、枚举.md"
-    },
-    {
-      "basename": "怎么复习？",
-      "path": "算法笔记/有难度的题目/怎么复习？.md"
     },
     {
       "basename": "Day24",
