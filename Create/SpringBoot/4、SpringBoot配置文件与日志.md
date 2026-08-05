@@ -1,6 +1,17 @@
 # SpringBoot 配置文件与日志
 
-> 配套项目：`Springboot-mybatis`。配置决定程序如何运行，日志帮助我们判断程序运行到了哪里、为什么失败。
+## 本篇快速复习
+
+- 配置文件描述“程序在当前环境中怎么运行”，例如端口、数据库、Session 和日志级别。
+- `properties` 与 YAML 能表达同样的配置；YAML 层级更清楚，但只能用空格缩进，不能用 Tab。
+- `application-{profile}.yml` 用于区分开发、测试和生产环境；敏感值优先使用环境变量。
+- `@Value` 适合少量配置，`@ConfigurationProperties` 适合一组结构化配置。
+- 日志级别从详细到严重是 `TRACE < DEBUG < INFO < WARN < ERROR`。
+- 可预料的业务拒绝通常记 `WARN`，系统故障、未知异常通常记 `ERROR`。
+- 普通 SLF4J 日志用于排错，AOP 操作日志属于审计记录，两者目的不同。
+- `StdOutImpl` 适合学习查看 SQL；正式环境更适合通过日志框架统一控制。
+
+> 配套项目：`Springboot-mybatis` 与 `employee-management`。配置决定程序如何运行，日志帮助我们判断程序运行到了哪里、为什么失败。
 >
 > 代码片段为核心写法，省略了 `package` 和部分 `import`。当前项目已包含 Lombok；未引入 Lombok 时请使用文中的手动 `Logger` 写法。
 
@@ -55,25 +66,34 @@ server:
 ```yaml
 spring:
   application:
-    name: springboot-mybatis
+    name: employee-management
   datasource:
-    type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/jdbctest
+    url: jdbc:mysql://localhost:3306/tlias
     username: root
-    password: "${DB_PASSWORD:123456}"
+    password: "${DB_PASSWORD}"
 
 mybatis:
+  mapper-locations: classpath*:/com/tanhong/mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
+
+server:
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: false
 ```
 
-`${DB_PASSWORD:123456}` 表示：
+`${DB_PASSWORD}` 表示从环境变量读取密码。若写成 `${DB_PASSWORD:123456}`，冒号后面是环境变量不存在时的默认值。
 
-1. 优先读取环境变量 `DB_PASSWORD`。
-2. 如果没有设置，使用默认值 `123456`。
+当前项目的 `application.yaml` 仍包含本地学习用明文密码，应在正式项目中改成环境变量。
 
-学习项目可以提供默认值；正式项目通常不应给真实密码设置默认值。
+> [!warning] Cookie 的 `secure`
+> 本地使用 HTTP 时通常设为 `false`；部署到 HTTPS 后应改为 `true`。`http-only` 可以阻止普通 JavaScript 读取 JSESSIONID，`same-site` 用于限制跨站携带 Cookie。
 
 ## 4. 多环境配置 Profile
 
@@ -226,6 +246,30 @@ log.debug("用户信息：" + user);
 > [!danger] 不得记录
 > 明文密码、令牌、身份证号、银行卡号等敏感信息。当前 `User` 若使用 Lombok `@Data`，打印整个对象可能把 `password` 一并写入日志。
 
+### 为什么业务异常经常使用 `WARN`，而不是 `ERROR`
+
+> **问：** “班级中还有学生，不能删除”为什么记 `WARN`？
+>
+> **答：** 这是程序预料到的业务冲突，系统仍然正常工作，只是拒绝了本次操作。数据库连接失败、未知空指针、代码缺陷等系统性失败才更适合记 `ERROR`。
+
+```text
+DEBUG  调试细节
+INFO   正常关键事件
+WARN   可预料但值得关注的问题
+ERROR  系统失败、未知异常、需要处理的故障
+```
+
+同一个异常不要在 Controller、Service、Mapper 每层重复打印完整堆栈，通常在统一边界记录一次即可。
+
+### 普通运行日志与操作审计日志
+
+```text
+log.info / warn / error     → 写给开发和运维人员，帮助排错
+OperationLogAspect         → 记录谁在何时执行了什么业务操作
+```
+
+AOP 操作日志、敏感参数处理和当前用户获取详见 [[9、Spring AOP、操作日志与ThreadLocal]]。
+
 ## 9. MyBatis SQL 日志怎么看
 
 常见内容：
@@ -252,6 +296,16 @@ Total: 1
 
 > [!warning] 注意
 > `DEBUG` SQL 日志适合开发排错，生产环境长期大量开启会增加磁盘和性能压力。
+
+如果配置：
+
+```yaml
+mybatis:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+```
+
+SQL 会直接输出到控制台，不能完全依靠 `logging.level` 控制。它适合学习观察 SQL；正式项目更适合使用 SLF4J 日志实现并统一管理级别和输出位置。
 
 ## 10. 常见问题
 

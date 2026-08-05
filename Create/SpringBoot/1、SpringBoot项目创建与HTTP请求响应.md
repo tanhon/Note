@@ -1,138 +1,111 @@
-> 适合初学者。本文以 IntelliJ IDEA、Maven、JDK 21 和 Spring Boot 4.x 为例；Spring Boot 3.x 的核心用法基本相同。
+# Spring Boot 项目创建与 HTTP 请求响应
 
-## 1. 先理解整体流程
+## 本篇快速复习
 
-```text
-浏览器 / Postman / IDEA HTTP Client
-              ↓ 发送 HTTP 请求
-        Spring Boot 应用
-              ↓ 根据 URL 找到 Controller 方法
-          执行业务代码
-              ↓ 生成 HTTP 响应
-浏览器 / Postman / IDEA HTTP Client
-```
+- 客户端发送 HTTP 请求，Spring 根据“请求方法 + URL”找到 Controller 方法，再返回 HTTP 响应。
+- `@RestController` 把方法返回值写入响应体：Java 对象通常转成 JSON，`String` 通常是普通文本。
+- `@RequestParam` 接收查询参数，`@PathVariable` 接收路径参数，`@RequestBody` 接收请求体。
+- JSON 请求通常使用 `Content-Type: application/json`；普通表单常使用 `application/x-www-form-urlencoded`。
+- REST 常用 `GET` 查询、`POST` 新增、`PUT` 完整修改、`PATCH` 部分修改、`DELETE` 删除。
+- `/api/users` 是 JSON 数据接口；`/` 可以打开 HTML，再由 JavaScript 获取 JSON 并渲染。
+- HTTP 响应包括状态码、响应头和响应体；`ResponseEntity` 可以控制三者。
+- 浏览器地址栏适合测试简单 GET；JSON POST、PUT 等请求可用 IDEA HTTP Client、Postman 或 Apifox。
 
-一句话：**客户端发送请求，服务器处理请求，再返回响应。**
+> [!info] 学习环境
+> 本篇以 JDK 21、Spring Boot 4.0.7、Maven 和用户列表案例为例。
 
 ---
 
-## 2. 使用 IDEA 创建 Spring Boot 项目
+## 1. 一次请求的整体流程
 
-### 2.1 准备环境
+**结论：请求从客户端进入 Controller，方法返回值再成为响应。**
 
-需要安装：
-
-- JDK 21
-- IntelliJ IDEA
-- Maven（IDEA 通常已经内置）
-
-在 IDEA 中检查 JDK：
-
-```text
-File → Project Structure → Project → SDK
+```mermaid
+flowchart LR
+    A["浏览器或HTTP客户端"] -->|"HTTP请求"| B["内置Web服务器"]
+    B --> C["Controller"]
+    C --> D["业务处理"]
+    D --> C
+    C -->|"HTTP响应"| A
 ```
 
-### 2.2 创建项目
+以 `GET /hello` 为例：
 
-1. 打开 IDEA，选择 `New Project`。
-2. 选择 `Spring Initializr`。（新版本显示 Spring Boot）
-3. 填写项目信息：
-   - Language：`Java`
-   - Type：`Maven`
-   - JDK：`21`
-   - Spring Boot：选择与 JDK 21 兼容的 `4.x` 稳定版本
-   - Group：`com.example`
-   - Artifact：`demo`
-4. 选择依赖 `Spring Web`。
-5. 选择保存位置，点击 `Create`。
-6. 等待 IDEA 下载依赖并完成项目加载。
+1. 客户端访问 `http://localhost:8080/hello`；
+2. 内置服务器接收请求；
+3. Spring 找到匹配的 Controller 方法；
+4. 方法执行并返回字符串或对象；
+5. Spring 写入响应体，对象通常被序列化为 JSON；
+6. 客户端收到状态码、响应头和响应体。
 
-`Group` 一般表示组织名，`Artifact` 表示项目名。
+---
 
-### 2.3 主要目录结构
+## 2. 创建并启动项目
+
+**结论：使用 Spring Initializr 创建 Maven 项目，选择 JDK 21 和 Spring Web 即可开始。**
+
+在 IDEA 中选择 `New Project → Spring Initializr`，主要设置：
+
+```text
+Language     Java
+Type         Maven
+JDK          21
+Spring Boot  4.0.7
+Dependency   Spring Web
+```
+
+若 IDEA 中没有合适入口，也可以从 [Spring Initializr](https://start.spring.io/) 生成后打开。
+
+主要目录：
 
 ```text
 demo
-├─ src
-│  ├─ main
-│  │  ├─ java
-│  │  │  └─ com.example.demo
-│  │  │     └─ DemoApplication.java
-│  │  └─ resources
-│  │     └─ application.properties
-│  └─ test
-└─ pom.xml
+├─ pom.xml
+└─ src
+   ├─ main
+   │  ├─ java/com/example/demo
+   │  │  └─ DemoApplication.java
+   │  └─ resources
+   │     ├─ application.yaml
+   │     └─ static
+   └─ test
 ```
 
-- `DemoApplication.java`：项目启动入口。
-- `application.properties`：项目配置文件。
-- `pom.xml`：管理依赖和项目构建。
-- `src/test`：存放测试代码。
-
-启动类通常如下：
+启动类：
 
 ```java
 @SpringBootApplication
 public class DemoApplication {
+
     public static void main(String[] args) {
         SpringApplication.run(DemoApplication.class, args);
     }
 }
 ```
 
-`@SpringBootApplication` 表示这是 Spring Boot 的启动类。
-
-### 2.4 启动项目
-
-打开启动类，点击 `main` 方法左侧的绿色三角形，选择 `Run`。
-
-控制台出现类似内容，说明启动成功：
+控制台出现类似信息表示启动成功：
 
 ```text
 Tomcat started on port 8080
 Started DemoApplication
 ```
 
-默认访问地址：
+默认地址是 `http://localhost:8080`。刚创建时没有 `/` 接口或静态首页，访问根地址出现 404 不代表启动失败。
 
-```text
-http://localhost:8080
+修改端口：
+
+```yaml
+server:
+  port: 8081
 ```
-
-其中：
-
-- `localhost` 表示本机。
-- `8080` 是默认端口。
-
-刚创建的项目还没有 `/` 接口，所以直接访问这个地址可能显示 `404`。这不代表启动失败；创建下面的接口后，应访问 `/hello`。
-
-若接口被占用，可以在 `application.properties` 中修改端口：
-
-```properties
-server.port=8081
-```
-
-或者，打开以管理员身份打开 Windows 终端，在终端先后输入
-
-``` powershell
-netstat -ano | findstr :8080
-taskkill /PID [进程ID] /F
-```
-
-这里的 `[进程 ID]` 是第一个命令的输出结果后面的数字。
 
 ---
 
 ## 3. 创建第一个接口
 
-在启动类所在包或其子包中创建 `HelloController.java`：
+**结论：`@GetMapping` 描述请求，`@RestController` 表示返回值直接进入响应体。**
 
 ```java
-package com.example.demo.controller;
-
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-
 @RestController
 public class HelloController {
 
@@ -143,79 +116,64 @@ public class HelloController {
 }
 ```
 
-启动项目后访问：
+访问：
 
 ```text
 http://localhost:8080/hello
 ```
 
-浏览器会显示：
+会得到普通文本：
 
 ```text
 Hello Spring Boot
 ```
 
-### 3.1 两个重要注解
-
-#### `@RestController`
-
-表示这个类是一个 REST 接口控制器。
-
-作用：
-
-- 接收 HTTP 请求。
-- 将方法返回值直接写入 HTTP 响应体。
+### `@RestController` 的准确含义
 
 它可以简单理解为：
 
-```java
+```text
 @Controller + @ResponseBody
 ```
 
-#### `@GetMapping("/hello")` 与 `@RequestMapping`
+- 返回 Java 对象：通常由 JSON 转换器序列化为 JSON；
+- 返回 `String`：通常直接返回普通文本；
+- 它不负责生成漂亮的 HTML 页面。
 
-`@GetMapping("/hello")` 表示把 `GET /hello` 请求映射到该方法。
-
-访问 `/hello` 时，Spring 就会执行 `hello()` 方法。
-
-`@GetMapping` 是 `@RequestMapping` 的快捷写法，并且只处理 `GET` 请求。`@RequestMapping` 默认不限制 HTTP 请求方法。
-
-如果写在类上，它表示该类所有接口的统一路径前缀：
+### `@RequestMapping` 与快捷注解
 
 ```java
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/users")
 public class UserController {
 
-    @GetMapping("/list")
-    public String list() {
-        return "用户列表";
+    @GetMapping
+    public List<User> list() {
+        return List.of();
     }
 }
 ```
 
-完整地址为：
+完整地址为 `GET /api/users`。
+
+常用快捷注解：
 
 ```text
-http://localhost:8080/users/list
+@GetMapping
+@PostMapping
+@PutMapping
+@PatchMapping
+@DeleteMapping
 ```
 
 ---
 
-## 4. HTTP 请求
+## 4. HTTP 请求由什么组成
 
-HTTP 请求是**客户端发送给服务器的数据**，表示客户端想做什么。
-
-一个请求主要由四部分组成：
-
-```text
-请求方法 + 请求地址 + 请求头 + 请求体
-```
-
-示例：
+**结论：一个请求主要包含请求方法、URL、请求头和请求体。**
 
 ```http
-POST /users HTTP/1.1
+POST /api/users HTTP/1.1
 Host: localhost:8080
 Content-Type: application/json
 
@@ -225,181 +183,150 @@ Content-Type: application/json
 }
 ```
 
-> **注意：** HTTP 请求头与请求体之间必须真正空一行，不要在空行中写注释。
+> [!warning] 请求头和请求体之间要空一行
+> 在 `.http` 文件中不要把注释放在这条空行内。
 
 ### 4.1 常用请求方法
 
-| 请求方法 | 常见作用 | 示例 |
+| 方法 | REST 常见用途 | 示例 |
 |---|---|---|
-| `GET` | 查询数据 | 查询用户 |
-| `POST` | 新增数据 | 新增用户 |
-| `PUT` | 修改完整数据 | 修改用户全部信息 |
-| `PATCH` | 修改部分数据 | 只修改用户名 |
-| `DELETE` | 删除数据 | 删除用户 |
+| `GET` | 查询 | 查询员工 |
+| `POST` | 新增 | 新增员工 |
+| `PUT` | 完整修改 | 替换员工主要信息 |
+| `PATCH` | 部分修改 | 只修改工资 |
+| `DELETE` | 删除 | 删除员工 |
 
-Spring 中常用的对应注解：
+`PUT` 和 `PATCH` 的区别是接口设计约定，Spring 不会自动决定修改哪些字段，最终仍由 Java 代码和 SQL 实现。
 
-```java
-@GetMapping("/users")
-@PostMapping("/users")
-@PutMapping("/users/{id}")
-@PatchMapping("/users/{id}")
-@DeleteMapping("/users/{id}")
-```
-
-这些注解都属于 `@RequestMapping` 的快捷写法，并且限制了请求方法。
-
-### 4.2 URL 的组成
+### 4.2 URL
 
 ```text
-http://localhost:8080/users/10?detail=true
-│      │         │    │        │
-协议   主机名     端口  路径     查询参数
+http://localhost:8080/api/users/10?detail=true
+│      │         │    │               │
+协议   主机名     端口  路径            查询参数
 ```
 
-### 4.3 请求头 Header
+### 4.3 请求头
 
-请求头用于传递请求的附加信息，例如：
+常见请求头：
 
 ```http
 Content-Type: application/json
 Authorization: Bearer token值
 ```
 
-- `Content-Type`：请求体的数据格式。
-- `Authorization`：身份认证信息。
-
-在 Spring 中获取请求头：
+获取请求头：
 
 ```java
 @GetMapping("/token")
-public String token(@RequestHeader("Authorization") String authorization) {
+public String token(
+        @RequestHeader("Authorization") String authorization) {
     return authorization;
 }
 ```
 
-### 4.4 请求体 Body
+### 4.4 常见请求体格式
 
-请求体用于提交数据，通常用于 `POST`、`PUT`、`PATCH` 请求。
+| `Content-Type` | 内容形式 | Spring 常见接收方式 |
+|---|---|---|
+| `application/json` | JSON | `@RequestBody` |
+| `application/x-www-form-urlencoded` | `name=小明&age=20` | `@RequestParam` 或对象绑定 |
+| `multipart/form-data` | 表单和文件 | `MultipartFile` |
 
-常见的 JSON 请求体：
-
-```json
-{
-  "name": "小明",
-  "age": 20
-}
-```
-
----
-
-## 5. Spring Boot 接收请求参数
-
-### 5.1 查询参数：`@RequestParam`
-
-请求地址：
-
-```text
-GET /hello?name=小明
-```
-
-代码：
-
-```java
-@GetMapping("/hello")
-public String hello(@RequestParam String name) {
-    return "你好，" + name;
-}
-```
-
-带默认值：
-
-```java
-@GetMapping("/hello")
-public String hello(
-        @RequestParam(defaultValue = "游客") String name) {
-    return "你好，" + name;
-}
-```
-
-### 5.2 路径参数：`@PathVariable`
-
-请求地址：
-
-```text
-GET /users/10
-```
-
-代码：
-
-```java
-@GetMapping("/users/{id}")
-public String getUser(@PathVariable Long id) {
-    return "查询用户：" + id;
-}
-```
-
-`10` 会被赋值给参数 `id`。
-
-### 5.3 JSON 请求体：`@RequestBody`
-
-> **学习阶段说明：** 这里直接用 `User` 接收和返回数据，是为了先理解 JSON 与 Java 对象的转换。正式项目通常改用请求 DTO 和响应 DTO，避免数据库实体与接口绑定，详见 [[5、Web接口工程化基础：DTO、校验、异常与跨域]]。
-
-在 `com.example.demo.model` 包中新建 `User.java`。Java 17 可以使用 `record` 简洁地定义数据类：
-
-```java
-package com.example.demo.model;
-
-public record User(Long id, String name, Integer age) {}
-```
-
-再创建接口：
-
-```java
-@PostMapping("/users")
-public User addUser(@RequestBody User user) {
-    return user;
-}
-```
-
-发送 JSON：
-
-```json
-{
-  "name": "小明",
-  "age": 20
-}
-```
-
-`@RequestBody` 会把 JSON 转换成 Java 对象。
-
-发送 JSON 时必须设置请求头：
+发送 JSON 时应设置：
 
 ```http
 Content-Type: application/json
 ```
 
-### 5.4 三种参数的区别
+---
+
+## 5. Spring 接收三种请求参数
+
+**结论：先判断数据位于查询字符串、URL 路径还是请求体，再选择注解。**
+
+### 5.1 `@RequestParam`：查询参数
+
+请求：
+
+```text
+GET /api/users?name=小明
+```
+
+```java
+@GetMapping
+public String search(
+        @RequestParam("name") String name) {
+    return "查询：" + name;
+}
+```
+
+可选参数和默认值：
+
+```java
+@RequestParam(
+        name = "pageNum",
+        defaultValue = "1"
+) Integer pageNum
+```
+
+### 5.2 `@PathVariable`：路径参数
+
+请求：
+
+```text
+GET /api/users/10
+```
+
+```java
+@GetMapping("/{id}")
+public String getById(
+        @PathVariable("id") Long id) {
+    return "查询用户：" + id;
+}
+```
+
+### 5.3 `@RequestBody`：JSON 请求体
+
+```java
+@PostMapping
+public User add(@RequestBody User user) {
+    return user;
+}
+```
+
+请求：
+
+```http
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+  "name": "小明",
+  "age": 20
+}
+```
+
+Spring 会把 JSON 字段转换到 Java 对象属性。
+
+### 三种参数对照
 
 | 注解 | 数据位置 | 示例 |
 |---|---|---|
-| `@RequestParam` | URL 查询参数 | `/users?name=小明` |
+| `@RequestParam` | URL 查询字符串 | `/users?name=小明` |
 | `@PathVariable` | URL 路径 | `/users/10` |
-| `@RequestBody` | 请求体 | JSON 数据 |
+| `@RequestBody` | 请求体 | JSON 对象 |
+
+同一个方法可以组合使用，例如路径中的 id 加请求体中的修改内容。
+
+> [!note] 普通表单和文件
+> `application/x-www-form-urlencoded` 的字段既可以逐个使用 `@RequestParam`，也可以通过 Spring MVC 数据绑定到一个普通 Java 对象，此时不要加 `@RequestBody`。上传文件通常使用 `multipart/form-data`，并用 `MultipartFile` 配合 `@RequestParam` 或 `@RequestPart` 接收。
 
 ---
 
 ## 6. HTTP 响应
 
-HTTP 响应是**服务器处理完请求后返回给客户端的数据**。
-
-一个响应主要由三部分组成：
-
-```text
-状态码 + 响应头 + 响应体
-```
-
-示例：
+**结论：响应主要包含状态码、响应头和响应体。**
 
 ```http
 HTTP/1.1 200 OK
@@ -411,170 +338,153 @@ Content-Type: application/json
 }
 ```
 
-### 6.1 常见状态码
+常见状态码：
 
 | 状态码 | 含义 |
 |---|---|
 | `200 OK` | 请求成功 |
 | `201 Created` | 创建成功 |
-| `204 No Content` | 成功，但没有响应体 |
-| `400 Bad Request` | 请求参数有误 |
-| `401 Unauthorized` | 未登录或认证失败 |
-| `403 Forbidden` | 没有访问权限 |
-| `404 Not Found` | 请求的资源不存在 |
+| `204 No Content` | 成功但没有响应体 |
+| `400 Bad Request` | 参数或请求格式有误 |
+| `401 Unauthorized` | 未完成认证 |
+| `403 Forbidden` | 已识别身份但无权限 |
+| `404 Not Found` | 资源或接口不存在 |
 | `500 Internal Server Error` | 服务器内部异常 |
 
-状态码分类：
+### 返回对象与 `ResponseEntity`
 
-- `2xx`：成功。
-- `4xx`：客户端请求有问题。
-- `5xx`：服务器处理出现问题。
-
-### 6.2 返回文本
+直接返回对象时，通常得到 JSON：
 
 ```java
-@GetMapping("/hello")
-public String hello() {
-    return "Hello";
+@GetMapping("/{id}")
+public User getById(@PathVariable("id") Long id) {
+    return userService.getById(id);
 }
 ```
 
-响应体是：
-
-```text
-Hello
-```
-
-### 6.3 返回 JSON
+需要控制状态码时：
 
 ```java
-@GetMapping("/users/{id}")
-public User getUser(@PathVariable Long id) {
-    return new User(id, "小明", 20);
-}
-```
-
-Spring Boot 会自动把 Java 对象转换为 JSON：
-
-```json
-{
-  "id": 10,
-  "name": "小明",
-  "age": 20
-}
-```
-
-### 6.4 使用 `ResponseEntity` 控制完整响应
-
-`ResponseEntity` 可以同时设置状态码、响应头和响应体。
-
-```java
-@PostMapping("/users")
-public ResponseEntity<User> addUser(@RequestBody User user) {
-    return ResponseEntity.status(201).body(user);
-}
-```
-
-这里返回：
-
-- 状态码：`201 Created`
-- 响应体：用户 JSON 数据
-
-查询不到数据时可以返回 `404`：
-
-```java
-@GetMapping("/users/{id}")
-public ResponseEntity<User> getUser(@PathVariable Long id) {
-    if (id != 10) {
-        return ResponseEntity.notFound().build();
-    }
-
-    return ResponseEntity.ok(new User(10L, "小明", 20));
+@PostMapping
+public ResponseEntity<User> add(@RequestBody User user) {
+    User saved = userService.add(user);
+    return ResponseEntity.status(201).body(saved);
 }
 ```
 
 ---
 
-## 7. 完整 Controller 示例
+## 7. JSON 接口与 HTML 页面
+
+**结论：后端接口提供数据，HTML 页面通过 JavaScript 获取数据并渲染。**
+
+两个地址作用不同：
+
+```text
+http://localhost:8080/             打开HTML页面
+http://localhost:8080/api/users    返回JSON数据
+```
+
+静态页面放在：
+
+```text
+src/main/resources/static/index.html
+```
+
+最小渲染示例：
+
+```html
+<table>
+  <tbody id="userBody"></tbody>
+</table>
+
+<script>
+  fetch('/api/users')
+    .then(response => response.json())
+    .then(users => {
+      document.querySelector('#userBody').innerHTML = users
+        .map(user => `<tr><td>${user.name}</td></tr>`)
+        .join('');
+    });
+</script>
+```
+
+> [!warning] 直接访问 API 看到 JSON 是正常的
+> `/api/users` 面向前端代码或接口客户端；浏览器要看到表格，应访问 HTML 页面。
+
+`@Controller` 常用于模板页面，返回的字符串可能被解释为视图名称；`@RestController` 则把字符串或对象直接写入响应体。
+
+---
+
+## 8. REST 用户接口示例
+
+**结论：同一资源使用统一 URL，通过 HTTP 方法表达不同操作。**
 
 ```java
-package com.example.demo.controller;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import com.example.demo.model.User;
-
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/users")
 public class UserController {
 
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
     @GetMapping("/{id}")
-    public String getUser(@PathVariable Long id) {
-        return "查询用户：" + id;
+    public User get(@PathVariable("id") Long id) {
+        return userService.getById(id);
     }
 
     @GetMapping
-    public String searchUser(
-            @RequestParam(defaultValue = "全部") String name) {
-        return "查询条件：" + name;
+    public List<User> list(
+            @RequestParam(value = "name", required = false)
+            String name) {
+        return userService.list(name);
     }
 
     @PostMapping
-    public ResponseEntity<User> addUser(@RequestBody User user) {
-        return ResponseEntity.status(201).body(user);
+    public ResponseEntity<User> add(@RequestBody User user) {
+        return ResponseEntity.status(201)
+                .body(userService.add(user));
     }
 
     @PutMapping("/{id}")
-    public String updateUser(
-            @PathVariable Long id,
+    public User update(
+            @PathVariable("id") Long id,
             @RequestBody User user) {
-        return "修改用户：" + id;
+        return userService.update(id, user);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(
+            @PathVariable("id") Long id) {
+        userService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }
 ```
 
-对应关系：
-
-| 功能 | 方法 | 地址 |
-|---|---|---|
-| 查询一个用户 | `GET` | `/users/10` |
-| 按条件查询 | `GET` | `/users?name=小明` |
-| 新增用户 | `POST` | `/users` |
-| 修改用户 | `PUT` | `/users/10` |
-| 删除用户 | `DELETE` | `/users/10` |
+| 功能 | 请求 |
+|---|---|
+| 查询一个 | `GET /api/users/10` |
+| 条件查询 | `GET /api/users?name=小明` |
+| 新增 | `POST /api/users` |
+| 修改 | `PUT /api/users/10` |
+| 删除 | `DELETE /api/users/10` |
 
 ---
 
-## 8. 在 IDEA 中测试接口
+## 9. 测试接口
 
-### 8.1 使用浏览器
-
-浏览器地址栏适合测试简单的 `GET` 请求：
-
-```text
-http://localhost:8080/hello
-```
-
-浏览器地址栏不适合测试带 JSON 请求体的 `POST`、`PUT` 请求。
-
-### 8.2 使用 IDEA HTTP Client
-
-在项目中新建 `requests.http` 文件：
+**结论：浏览器适合简单 GET，`.http` 文件适合完整接口请求。**
 
 ```http
-### 查询用户
-GET http://localhost:8080/users/10
+### 查询
+GET http://localhost:8080/api/users/10
 
-### 使用查询参数
-GET http://localhost:8080/users?name=小明
-
-### 新增用户
-POST http://localhost:8080/users
+### 新增
+POST http://localhost:8080/api/users
 Content-Type: application/json
 
 {
@@ -582,115 +492,65 @@ Content-Type: application/json
   "age": 20
 }
 
-### 删除用户
-DELETE http://localhost:8080/users/10
+### 删除
+DELETE http://localhost:8080/api/users/10
 ```
 
-点击每个请求左侧的绿色运行按钮，即可发送请求并查看响应。
-
-不同 IDEA 版本或授权版本的创建入口和 HTTP Client 功能可能不同。如果找不到 `Spring Initializr`，可以在 [Spring Initializr](https://start.spring.io/) 生成项目后用 IDEA 打开；如果不能运行 `.http` 文件，也可以使用 Postman、Apifox 等工具测试接口。
-
----
-
-## 9. 一次请求在 Spring Boot 中经历了什么
-
-以访问 `GET /hello` 为例：
-
-1. 客户端向 `localhost:8080/hello` 发送 HTTP 请求。
-2. Spring Boot 内置的 Web 服务器接收到请求。
-3. Spring 根据 `/hello` 找到对应的 Controller 方法。
-4. Spring 调用该方法。
-5. 方法返回字符串或 Java 对象。
-6. Spring 将返回值写入 HTTP 响应体；Java 对象通常会被转换为 JSON。
-7. 客户端收到状态码、响应头和响应体。
+点击 IDEA 中请求左侧运行按钮即可发送。也可以使用 Postman、Apifox 或自动化测试。
 
 ---
 
 ## 10. 常见问题
 
-### 10.1 访问接口出现 404
+**结论：先根据状态码判断问题位于路径、方法、参数格式还是服务器代码。**
 
-可能原因：
+| 现象 | 常见原因 |
+|---|---|
+| `404` | URL 错误、Controller 未扫描、资源不存在 |
+| `405` | 请求方法不匹配，例如用 GET 调 POST 接口 |
+| `400` | 缺参数、JSON 错误、类型转换失败 |
+| `415` | `Content-Type` 不匹配，例如 JSON 未声明类型 |
+| `500` | 服务器代码异常，需要查看控制台日志 |
+| 端口占用 | 关闭占用进程或修改 `server.port` |
 
-- 请求地址写错。
-- Controller 没有放在启动类所在包或其子包中。
-- 方法上的映射注解写错。
-- 项目没有成功启动。
+### 问：不传时间参数会自动使用当前时间吗？
 
-### 10.2 出现 405 Method Not Allowed
+不会。没传时通常是 `null`。需要在 Service 中调用 `LocalDateTime.now()`，或设置数据库默认值。
 
-请求方法不匹配。例如接口使用 `@PostMapping`，但客户端发送了 `GET` 请求。
+### 问：可以使用 `toString()` 返回完整对象吗？
 
-### 10.3 出现 400 Bad Request
+不推荐。`toString()` 是普通文本，不是结构化 JSON。直接返回 Java 对象，Spring 才能按字段序列化。
 
-常见原因：
+### 问：为什么统一响应中的 `data` 是 `null`？
 
-- 缺少必填参数。
-- JSON 格式错误。
-- 参数类型不匹配，例如把文字传给 `Integer`。
+检查调用的是不是无参数方法：
 
-### 10.4 出现 500 Internal Server Error
-
-服务器执行代码时发生异常。需要查看 IDEA 控制台中的错误信息。
-
-### 10.5 出现 415 Unsupported Media Type
-
-服务器不支持客户端发送的数据格式。发送 JSON 时需要添加：
-
-```http
-Content-Type: application/json
+```java
+Result.success();      // 通常data为null
+Result.success(emp);   // data中包含emp
 ```
 
-### 10.6 端口被占用
-
-控制台可能出现：
-
-```text
-Port 8080 was already in use
-```
-
-可以关闭占用端口的程序，或者修改端口：
-
-```properties
-server.port=8081
-```
+还要确认 `success(data)` 实现确实把参数赋给了 `data` 字段。
 
 ---
 
-## 11. 核心知识速记
+## 11. 核心速记
 
 ```text
-@RestController  接收请求并直接返回数据
-@RequestMapping  映射请求路径，可用于类或方法
-@GetMapping      处理 GET 请求
-@PostMapping     处理 POST 请求
-@PutMapping      处理 PUT 请求
-@DeleteMapping   处理 DELETE 请求
-@RequestParam    获取 URL 查询参数
-@PathVariable    获取 URL 路径参数
-@RequestBody     获取请求体中的 JSON 数据
-@RequestHeader   获取请求头
-ResponseEntity   设置响应状态码、响应头和响应体
+@RestController  返回值写入响应体
+@RequestMapping  设置统一路径或完整映射条件
+@GetMapping      处理GET
+@PostMapping     处理POST
+@PutMapping      处理PUT
+@DeleteMapping   处理DELETE
+@RequestParam    查询参数
+@PathVariable    路径参数
+@RequestBody     JSON请求体
+@RequestHeader   请求头
+ResponseEntity   控制状态码、响应头和响应体
 ```
 
-最重要的理解：
-
-```text
-URL 和请求方法决定执行哪个 Controller 方法；
-请求参数进入方法，方法返回值成为响应数据。
-```
-
-## 12. 自测题
-
-1. `@RestController` 的作用是什么？
-2. `@GetMapping("/hello")` 表示什么？它和 `@RequestMapping` 有什么关系？
-3. `GET` 和 `POST` 的常见用途有什么不同？
-4. HTTP 请求由哪几个主要部分组成？
-5. HTTP 响应由哪几个主要部分组成？
-6. `@RequestParam`、`@PathVariable`、`@RequestBody` 分别获取哪里的数据？
-7. 状态码 `200`、`404`、`500` 分别表示什么？
-8. 为什么浏览器地址栏不适合测试 JSON `POST` 请求？
-
+> URL 和请求方法决定执行哪个 Controller 方法；参数进入方法，返回值经过处理后成为 HTTP 响应。
 
 ---
 
@@ -699,5 +559,4 @@ URL 和请求方法决定执行哪个 Controller 方法；
 - [[2、Spring三层架构、内聚与耦合、IoC与DI]]
 - [[4、SpringBoot配置文件与日志]]
 - [[5、Web接口工程化基础：DTO、校验、异常与跨域]]
-
 - [[0、SpringBoot笔记目录与学习路线|返回笔记目录]]

@@ -1,90 +1,183 @@
-> 配套案例：浏览器请求用户列表，后端读取 `users.txt`，返回 JSON，前端渲染表格。
+# Spring 三层架构、内聚与耦合、IoC 与 DI
+
+## 本篇快速复习
+
+- 三层架构可以记成：Controller 管请求，Service 管业务，Dao/Mapper 管数据。
+- 高内聚要求一个类围绕一种职责工作；低耦合要求减少对具体实现和底层细节的依赖。
+- Dao 是数据访问层概念；在 MyBatis 项目中，Mapper 是这一层的主要实现形式。
+- 接口有利于隔离实现，但不是所有只有一个简单实现的 Service 都必须强制创建接口。
+- IoC 表示对象创建和管理交给 Spring；DI 表示 Spring 把对象需要的依赖传进去。
+- `@Component`、`@Service` 等用于注册组件；`@Service` 通常放在实现类，不放在普通接口。
+- 推荐构造器注入。只有一个构造器时可省略 `@Autowired`，但 Spring 只会调用已有构造器，不会生成构造器。
+- `@RequiredArgsConstructor` 是 Lombok 在编译期生成构造器，不是 Spring 生成。
+- 多个同类型 Bean 可用 `@Primary` 或 `@Qualifier` 选择；`@Resource` 来自 `jakarta.annotation`。
+- 当前项目用 web、service、dao、model 四个 Maven 模块进一步约束分层依赖。
+
+> [!info] 配套案例
+> HTML 请求用户列表，后端读取 `users.txt`，返回 JSON，前端将其渲染成表格；随后再映射到当前 MyBatis 员工管理项目。
 
 ---
 
-## 1. 案例整体流程
+## 1. 用户列表案例调用链
 
-本案例包含以下内容：
-
-- `index.html`：发送 HTTP 请求并渲染用户表格。
-- `UserController`：接收 `/api/users` 请求。
-- `UserService`：定义用户业务。
-- `UserServiceImpl`：实现用户业务。
-- `UserDao`：定义用户数据访问方式。
-- `UserDaoImpl`：读取并解析 `users.txt`。
-- `User`：表示一个用户对象。
-
-完整调用流程：
+**结论：页面、请求处理、业务规则和数据读取分别交给不同组件。**
 
 ```mermaid
 flowchart LR
-    A["index.html"] -->|"GET /api/users"| B["UserController"]
-    B --> C["UserService 接口"]
-    C --> D["UserServiceImpl"]
-    D --> E["UserDao 接口"]
-    E --> F["UserDaoImpl"]
-    F --> G["users.txt"]
-    G --> F
-    F --> D
-    D --> B
-    B -->|"JSON 响应"| A
+    HTML["index.html"] -->|"GET /api/users"| C["UserController"]
+    C --> S["UserService"]
+    S --> D["UserDao"]
+    D --> TXT["users.txt"]
+    TXT --> D
+    D --> S
+    S --> C
+    C -->|"JSON"| HTML
 ```
 
-浏览器访问的两个地址作用不同：
+主要文件：
+
+| 文件或类 | 作用 |
+|---|---|
+| `index.html` | 请求接口并渲染表格 |
+| `UserController` | 接收 `/api/users` 请求 |
+| `UserServiceImpl` | 查询、过滤或排序用户 |
+| `TxtUserDaoImpl` | 读取并解析 `users.txt` |
+| `User` | 表示用户数据 |
+
+两个地址作用不同：
 
 ```text
-http://localhost:8080/             前端 HTML 页面
-http://localhost:8080/api/users    后端 JSON 接口
+http://localhost:8080/             HTML页面
+http://localhost:8080/api/users    JSON接口
 ```
 
-> **注意：** 直接访问 `/api/users` 时看到 JSON 是正常现象。HTML 页面会通过 `fetch("/api/users")` 获取 JSON，再将其渲染成表格。
+直接访问 `/api/users` 看到 JSON 是正常的。JSON 与 HTML 的关系详见 [[1、SpringBoot项目创建与HTTP请求响应]]。
 
 ---
 
 ## 2. 为什么要使用三层架构
 
-如果把所有代码都写在 Controller 中，Controller 可能同时负责：
+**结论：分层把不同种类的变化隔开，避免一个 Controller 同时处理所有工作。**
 
-1. 接收 HTTP 请求。
-2. 读取 `users.txt`。
-3. 解析字符串。
-4. 创建 `User` 对象。
-5. 过滤或排序用户。
-6. 返回 JSON。
+如果一个方法同时负责：
 
-随着功能增加，一个方法会越来越长，也会越来越难修改和测试。
+```text
+接收请求 → 读文件 → 解析字符串 → 判断规则 → 生成响应
+```
 
-三层架构将这些工作分开：
+功能增加后会很难修改和测试。
 
-| 层 | 主要职责 | 本案例中的工作 |
+三层分工：
+
+| 层 | 主要职责 | 本案例 |
 |---|---|---|
-| Controller | 接收请求、返回响应 | 接收 `/api/users`，调用 Service |
-| Service | 处理业务逻辑 | 查询、过滤、排序用户 |
-| Dao/Repository | 访问数据 | 读取和解析 `users.txt` |
+| Controller | 接收参数、调用 Service、返回响应 | 处理 `/api/users` |
+| Service | 业务规则和事务边界 | 查询、过滤、排序 |
+| Dao/Mapper | 访问数据并完成映射 | 读取 txt 或执行 SQL |
 
 一句话记忆：
 
-> **Controller 管请求，Service 管业务，Dao 管数据。**
+> Controller 管请求，Service 管业务，Dao/Mapper 管数据。
+
+### Controller 不应该做什么
+
+- 直接读取文件或执行 SQL；
+- 编写大量业务判断；
+- 使用 `new UserServiceImpl()` 创建下层对象。
+
+### Service 不应该做什么
+
+- 处理 HTTP 响应头或 HTML；
+- 知道 txt 的逗号格式；
+- 依赖 Controller。
+
+### Dao/Mapper 不应该做什么
+
+- 决定用户是否有业务删除权限；
+- 返回 HTTP 状态码；
+- 反向调用 Service。
+
+> [!warning] 分层不是绝对按代码行划分
+> 参数格式校验常放在 Web 边界，业务规则放 Service，数据库字段映射放 Dao/Mapper。判断依据是“这段代码属于哪种职责”。
 
 ---
 
-## 3. Controller 层
+## 3. 一套最小代码骨架
 
-Controller 是 Web 层入口，负责：
+**结论：Controller 调 Service，Service 调 Dao，具体数据源隐藏在 Dao 实现中。**
 
-- 接收 HTTP 请求。
-- 获取路径参数、查询参数或请求体。
-- 进行基础参数校验。
-- 调用 Service。
-- 返回 JSON 或页面。
+### 数据对象
 
-示例：
+```java
+public class User {
+    private Integer id;
+    private String name;
+    private Integer age;
+    private String email;
+
+    // 构造器、getter、setter省略
+}
+```
+
+### Dao
+
+```java
+public interface UserDao {
+    List<User> findAll();
+}
+```
+
+```java
+@Repository
+public class TxtUserDaoImpl implements UserDao {
+
+    @Override
+    public List<User> findAll() {
+        // 读取users.txt，将每行解析为User
+        // 这里用空列表占位，实际实现见文件读取代码
+        return List.of();
+    }
+}
+```
+
+Dao 应返回 `List<User>`，而不是 `List<String>`。否则 Service 还要知道文件分隔符和字段位置，底层格式就泄漏到了业务层。
+
+### Service
+
+```java
+public interface UserService {
+    List<User> findAll();
+}
+```
+
+```java
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserDao userDao;
+
+    public UserServiceImpl(UserDao userDao) {
+        this.userDao = userDao;
+    }
+
+    @Override
+    public List<User> findAll() {
+        return userDao.findAll().stream()
+                .sorted(Comparator.comparing(User::getId))
+                .toList();
+    }
+}
+```
+
+排序是业务要求，所以放在 Service。`Stream.toList()` 返回的列表不可直接增删；后续确实需要修改时，应创建可变副本。
+
+### Controller
 
 ```java
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-	// 构造器注入
+
     private final UserService userService;
 
     public UserController(UserService userService) {
@@ -92,215 +185,81 @@ public class UserController {
     }
 
     @GetMapping
-    public List<User> getUsers() {
+    public List<User> list() {
         return userService.findAll();
     }
 }
 ```
 
-Controller 不应该：
+---
 
-- 直接读取 `users.txt`。（数据层）
-- 直接连接数据库。（数据层）
-- 编写大量业务判断。（业务处理层）
-- 使用 `new UserServiceImpl()` 创建 Service。（耦合）
+## 4. Dao、Mapper 与 Repository 的关系
 
-> **注意：** Controller 应依赖 `UserService` 接口，而不是直接依赖 `UserServiceImpl`。
+**结论：Dao/Repository 表示数据访问职责，Mapper 是 MyBatis 项目中的具体技术形式。**
+
+在 txt 案例中，需要自己编写：
+
+```text
+UserDao接口 + TxtUserDaoImpl实现
+```
+
+在 MyBatis 项目中，通常编写：
+
+```java
+public interface EmpMapper {
+    Emp getById(Integer id);
+}
+```
+
+再通过 `@Mapper` 或启动类中的：
+
+```java
+@MapperScan("com.tanhong.mapper")
+```
+
+让 MyBatis 创建 Mapper 代理 Bean。因此：
+
+```text
+Dao/Repository：数据访问层的概念
+Mapper：当前项目实现数据访问层的主要方式
+```
+
+> [!warning] Mapper 接口是特殊接口
+> 普通接口不能自己产生对象；Mapper 能注入，是因为 MyBatis 创建了代理实现，不是 Spring 凭空实例化接口。
 
 ---
 
-## 4. Service 层
+## 5. 高内聚与低耦合
 
-Service 层负责业务规则，例如：
+**结论：高内聚看“一个类内部是否专注”，低耦合看“类之间是否知道得太多”。**
 
-- 判断用户是否存在。
-- 过滤未成年用户。
-- 按编号或年龄排序。
-- 检查邮箱是否重复。
-- 决定用户能否新增或删除。
+### 5.1 高内聚
 
-Service 接口：
+高内聚示例：
 
-```java
-public interface UserService {
-
-    List<User> findAll();
-}
+```text
+UserController   都是请求响应代码
+UserServiceImpl  都是用户业务规则
+TxtUserDaoImpl   都是txt数据访问代码
 ```
 
-Service 实现：
+低内聚示例：一个 Service 同时读取文件、解析字符串、设置响应头并生成 HTML。
 
-```java
-@Service
-public class UserServiceImpl implements UserService {
-	// 构造器注入
-    private final UserDao userDao;
+高内聚不是类越小越好。把每一行代码都拆成一个类，会变成过度设计。
 
-    public UserServiceImpl(UserDao userDao) {
-        this.userDao = userDao;
-    }
-
-    @Override
-    public List<User> findAll() {
-        return userDao.findAll()
-                .stream()
-                .sorted(Comparator.comparing(User::getId))
-                .toList();
-    }
-}
-```
-
-这里的排序属于业务处理，因此放在 Service 比放在 Dao 更合适。
-
-> **注意：** Service 不应该知道用户数据在 txt、MySQL 还是其他系统中。它只需要通过 `UserDao` 接口取得数据。
-
----
-
-## 5. Dao 数据访问层
-
-Dao 是 `Data Access Object`，即数据访问对象。
-
-Dao 负责：
-
-- 读取文件或查询数据库。
-- 将底层数据转换为 Java 对象。
-- 保存、修改或删除数据。
-- 隐藏具体的数据存储方式。
-
-Dao 接口：
-
-```java
-public interface UserDao {
-
-    List<User> findAll();
-}
-```
-
-txt 实现：
-
-```java
-@Repository
-public class TxtUserDaoImpl implements UserDao {
-
-    @Override
-    public List<User> findAll() {
-        InputStream inputStream = getClass()
-                .getClassLoader()
-                .getResourceAsStream("users.txt");
-
-        if (inputStream == null) {
-            throw new IllegalStateException("找不到 users.txt 文件");
-        }
-
-        List<String> lines = IoUtil.readLines(
-                inputStream,
-                StandardCharsets.UTF_8,
-                new ArrayList<>()
-        );
-
-        return lines.stream()
-                .filter(line -> !line.isBlank())
-                .map(this::parseUser)
-                .toList();
-    }
-
-    private User parseUser(String line) {
-        String[] parts = line.split(",");
-
-        if (parts.length != 4) {
-            throw new IllegalArgumentException(
-                    "用户数据格式错误：" + line
-            );
-        }
-
-        return new User(
-                Integer.valueOf(parts[0].trim()),
-                parts[1].trim(),
-                Integer.valueOf(parts[2].trim()),
-                parts[3].trim()
-        );
-    }
-}
-```
-
-### 为什么 Dao 应返回 `List<User>`
-
-不推荐：
-
-```java
-List<String> txtToList();
-```
-
-这种设计会让 Service 知道：
-
-- 数据来自 txt。
-- 每行使用逗号分隔。
-- 每个位置分别代表什么字段。
-
-推荐：
-
-```java
-List<User> findAll();
-```
-
-Dao 负责读取和解析，Service 只接收业务对象。这样更换数据源时，Service 不需要跟着修改。
-
----
-
-## 6. 什么是高内聚
-
-内聚描述的是：
-
-> **一个类内部的代码是否都在围绕同一种职责工作。**
-
-高内聚的例子：
-
-- `UserController` 中都是请求和响应代码。
-- `UserServiceImpl` 中都是用户业务规则。
-- `TxtUserDaoImpl` 中都是 txt 用户数据访问代码。
-
-低内聚的例子：
-
-```java
-public class UserServiceImpl {
-
-    // 读取文件
-    // 解析字符串
-    // 判断业务规则
-    // 设置 HTTP 响应头
-    // 生成 HTML
-}
-```
-
-这个类承担了太多不同种类的工作，因此内聚性较低。
-
-> **注意：** 高内聚不是“类越小越好”。如果把打开文件、读取一行、字符串分割全部拆成独立类，可能造成过度设计。
-
----
-
-## 7. 什么是低耦合
-
-耦合描述的是：
-
-> **一个类对其他类的了解和依赖程度。**
+### 5.2 低耦合
 
 强耦合：
 
 ```java
-List<User> users = new UserDaoImpl().findAll();
+UserDao userDao = new TxtUserDaoImpl();
 ```
 
-问题：
-
-- Service 直接依赖具体的 `UserDaoImpl`。
-- 更换 MySQL 实现时必须修改 Service。
-- 无法方便地使用模拟 Dao 进行测试。（test 测试）
-- 对象创建不再由 Spring 管理。（使用了 new）
+Service 直接知道具体实现，更换 MySQL 数据源时必须修改 Service。
 
 低耦合：
 
 ```java
-// 构造器注入
 private final UserDao userDao;
 
 public UserServiceImpl(UserDao userDao) {
@@ -308,191 +267,89 @@ public UserServiceImpl(UserDao userDao) {
 }
 ```
 
-Service 只依赖 `UserDao` 接口，不关心具体实现。
+Service 依赖数据访问能力，不负责创建具体对象。
 
-如果把 txt 换成 MySQL，可以新增：
+### 接口不是唯一标准
 
-```java
-@Repository
-public class MysqlUserDaoImpl implements UserDao {
+接口适合：
 
-    @Override
-    public List<User> findAll() {
-        // 查询 MySQL
-        return List.of();
-    }
-}
-```
+- 存在多个实现；
+- 需要明确模块契约；
+- 实现容易变化；
+- 测试时希望替换实现。
 
-Controller 和 Service 的业务代码通常不需要修改。
+只有一个很简单且稳定的 Service 时，直接注入实现类也可以。低耦合还取决于职责、依赖方向和是否泄漏底层细节，不能只靠“创建了接口”判断。
 
----
+### 用修改影响范围检查设计
 
-## 8. 分层解耦的核心方法
+| 变化 | 理想修改位置 |
+|---|---|
+| txt 换成 MySQL | Dao/Mapper 为主 |
+| 增加“只显示成年人” | Service 为主 |
+| URL 改为 `/api/employees` | Controller 和前端请求地址 |
 
-### 8.1 每一层只负责自己的工作
-
-```text
-Controller → HTTP
-Service    → 业务
-Dao        → 数据
-```
-
-### 8.2 上层依赖接口
-
-推荐：
-
-```java
-private final UserService userService;
-private final UserDao userDao;
-```
-
-不推荐：
-
-```java
-private final UserServiceImpl userServiceImpl;
-private final UserDaoImpl userDaoImpl;
-```
-
-### 8.3 不手动创建下层对象
-
-不推荐：
-
-```java
-UserDao userDao = new UserDaoImpl();
-```
-
-推荐让 Spring 注入：
-
-```java
-public UserServiceImpl(UserDao userDao) {
-    this.userDao = userDao;
-}
-```
-
-### 8.4 不让底层细节泄漏到上层
-
-如果 Dao 返回 `List<String>`，Service 就必须理解 txt 格式。
-
-如果 Dao 返回 `List<User>`，Service 只需要处理用户业务。
+如果一个小需求总要同时修改所有层，说明职责边界可能不合理。
 
 ---
 
-## 9. IoC：控制反转
+## 6. IoC、Bean 与组件扫描
 
-IoC 是 `Inversion of Control`，中文是“控制反转”。
+**结论：IoC 把对象创建和管理的控制权从业务代码交给 Spring。**
 
-### 传统方式
-
-对象由程序员手动创建：
+传统方式：
 
 ```java
-UserDao userDao = new UserDaoImpl();
-UserService userService = new UserServiceImpl(userDao);
-UserController controller = new UserController(userService);
+UserDao dao = new TxtUserDaoImpl();
+UserService service = new UserServiceImpl(dao);
+UserController controller = new UserController(service);
 ```
 
-此时，对象创建权在业务代码中。
-
-### Spring IoC 方式（各种注解）
+使用 Spring 后，通过组件注解描述对象：
 
 ```java
 @Repository
-public class UserDaoImpl implements UserDao {
+public class TxtUserDaoImpl implements UserDao {
 }
-```
 
-```java
 @Service
 public class UserServiceImpl implements UserService {
 }
-```
 
-```java
 @RestController
 public class UserController {
 }
 ```
 
-Spring 启动时负责：
+Spring 启动时会扫描、创建、保存并连接这些对象。被 Spring 管理的对象称为 Bean。
 
-1. 扫描组件。
-2. 创建对象。
-3. 将对象放入 IoC 容器。
-4. 分析对象之间的依赖。
-5. 注入需要的对象。
+| 注解 | 典型位置 |
+|---|---|
+| `@Component` | 通用组件 |
+| `@Service` | 业务实现类 |
+| `@Repository` | 数据访问实现类 |
+| `@Controller` | MVC Controller |
+| `@RestController` | REST Controller |
+| `@Configuration` | 配置类 |
 
-控制权从业务代码转移给 Spring，所以称为“控制反转”。
-
-> **IoC 的重点：对象由谁创建、由谁管理。**
-
----
-
-## 10. Spring Bean 与 IoC 容器
-
-被 Spring 创建并管理的对象称为 Bean。
-
-例如：
-
-```java
-@Service
-public class UserServiceImpl {
-}
-```
-
-`UserServiceImpl` 的对象就是一个 Spring Bean。
-
-Spring 常用组件注解：
-
-| 注解 | 典型位置 | 含义 |
-|---|---|---|
-| `@Component` | 通用组件 | 将类注册为 Bean |
-| `@Service` | Service 层 | 业务组件 |
-| `@Repository` | Dao 层 | 数据访问组件 |
-| `@Controller` | MVC 控制器 | 返回页面 |
-| `@RestController` | REST 控制器 | 返回 JSON 等响应体 |
-
-@Component              根注解
-    ├── @Controller     MVC 控制器
-    │       └── @RestController   REST 控制器
-    ├── @Service        业务逻辑层
-    ├── @Repository     数据访问层
-    └── @Configuration  配置类
-这些注解本质上都能让 Spring 管理对应对象。
-
-> **注意：** `@Service` 本身已经具有 `@Component` 的作用，不需要同时写 `@Service` 和 `@Component`。以此类推。
+这些注解都具有组件含义。`@Service` 已经能注册 Bean，不要再重复添加 `@Component`。
 
 ### 组件扫描范围
 
-<font color="#00b0f0">问题：使用前面学习的几个注解声明的 bean，一定会生效吗？​</font>
-<font color="#00b0f0">答案：不一定。（原因：bean 想要生效，还需要被组件扫描）</font>
-
-`@SpringBootApplication` 默认扫描启动类所在包及其子包。
-
-例如启动类位于：
+`@SpringBootApplication` 默认扫描启动类所在包及其子包。启动类应尽量放在根包：
 
 ```text
-org.example.hellospring
+com.tanhong.EmployeeManagementApplication
 ```
 
-那么下面的包可以被扫描：
+这样 `com.tanhong.controller`、`com.tanhong.service` 等子包都能被发现。
 
-```text
-org.example.hellospring.user.controller
-org.example.hellospring.user.service
-org.example.hellospring.user.dao
-```
-
-> **注意：** 如果组件类放在启动类包之外，可能无法被默认扫描。
-> 所以，建议严格按照下面的包格式进行规范架构。
+Bean 作用域、第三方 Bean 和 `@Import` 详见 [[10、Bean进阶：作用域、第三方Bean与Import]]。
 
 ---
 
-## 11. DI：依赖注入
+## 7. DI、`@Autowired` 与构造器
 
-DI 是 `Dependency Injection`，中文是“依赖注入”。
-
-假设 `UserServiceImpl` 需要 `UserDao`：
+**结论：DI 是 Spring 把 Bean 需要的依赖传入，推荐使用构造器注入。**
 
 ```java
 @Service
@@ -506,46 +363,17 @@ public class UserServiceImpl implements UserService {
 }
 ```
 
-Spring 会：
+构造器注入的优点：
 
-1. 找到实现 `UserDao` 的 Bean。
-2. 创建 `UserServiceImpl`。
-3. 将 `UserDao` Bean 作为构造参数传入。
+- 必要依赖清晰；
+- 字段可使用 `final`；
+- 创建后依赖完整；
+- 便于单元测试；
+- 更容易发现循环依赖。
 
-可以将其理解为 Spring 自动完成了：
+### `@Autowired` 是什么
 
-```java
-UserDao userDao = 从IoC容器中找到的对象;
-UserServiceImpl service = new UserServiceImpl(userDao);
-```
-
-> **DI 的重点：对象需要的依赖如何传入。**
-
-IoC 和 DI 的关系：
-
-```text
-IoC：Spring 管理对象
-DI：Spring 将对象之间的依赖连接起来
-```
-
-DI 是实现 IoC 的主要方式之一。
-
----
-
-## 12. `@Autowired` 的作用
-
-`@Autowired` 表示让 Spring 自动注入依赖。
-
-构造器注入：
-
-```java
-@Autowired
-public UserServiceImpl(UserDao userDao) {
-    this.userDao = userDao;
-}
-```
-
-如果类只有一个构造器，可以省略 `@Autowired`：
+`@Autowired` 告诉 Spring 在指定位置注入依赖。类只有一个构造器时可以省略：
 
 ```java
 public UserServiceImpl(UserDao userDao) {
@@ -553,76 +381,38 @@ public UserServiceImpl(UserDao userDao) {
 }
 ```
 
-Spring 仍然会使用这个构造器完成注入。
+必须准确理解：
 
-> **特别注意：Spring 可以自动调用唯一构造器，但不会自动生成一个不存在的 Java 构造器。**
+> Spring 可以自动调用已经存在的唯一构造器，但不会生成不存在的 Java 构造器。
 
-下面的代码会编译失败：
-
-```java
-@Service
-public class UserServiceImpl {
-
-    private final UserDao userDao;
-}
-```
-
-因为 `final` 字段没有完成初始化。
-
-如果字段不是 `final`：
-
-```java
-private UserDao userDao;
-```
-
-代码可能可以编译，但如果没有构造器注入或字段注入，它的值就是 `null`，调用时会出现 `NullPointerException`。
-
----
-
-## 13. 为什么推荐构造器注入
-
-推荐：
+下面代码没有其他构造器生成工具时会编译失败：
 
 ```java
 private final UserDao userDao;
-
-public UserServiceImpl(UserDao userDao) {
-    this.userDao = userDao;
-}
 ```
 
-不推荐字段注入：
+因为 `final` 字段没有初始化。
+
+字段注入虽然短，但不推荐作为主要写法：
 
 ```java
 @Autowired
 private UserDao userDao;
 ```
 
-构造器注入的优点：
+它隐藏依赖关系，字段无法方便地保持 `final`，测试时也更难直接传入替代对象。
 
-- 依赖关系清晰。
-- 字段可以声明为 `final`。
-- 对象创建完成后，依赖一定存在。
-- 更方便编写单元测试。
-- 不依赖反射给私有字段赋值。
-- 可以及时发现循环依赖。
-
----
-
-## 14. Lombok 构造器注入
-
-如果项目使用 Lombok，可以写：
+### Lombok 构造器
 
 ```java
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
     private final UserDao userDao;
 }
 ```
 
-Lombok 会在编译期间生成：
+Lombok 在编译期生成：
 
 ```java
 public UserServiceImpl(UserDao userDao) {
@@ -630,40 +420,33 @@ public UserServiceImpl(UserDao userDao) {
 }
 ```
 
-> **注意：** 这是 Lombok 生成的构造器，不是 Spring 生成的。没有 `@RequiredArgsConstructor` 时，Spring不会凭空生成构造器。
+删除手写构造器仍能运行，通常是因为 Lombok 已经生成，而不是 Spring 自动补上。
 
 ---
 
-## 15. 多个实现类时如何注入
+## 8. 多个实现怎样选择
 
-假设有两个实现：
+**结论：一个接口有多个 Bean 时，要明确默认实现或在注入点指定。**
 
-```java
-@Repository
-public class TxtUserDaoImpl implements UserDao {
-}
+假设同时有：
+
+```text
+TxtUserDaoImpl
+MysqlUserDaoImpl
 ```
 
+### `@Primary`
+
 ```java
+@Primary
 @Repository
 public class MysqlUserDaoImpl implements UserDao {
 }
 ```
 
-Spring 会发现两个 `UserDao` Bean，无法确定注入哪一个。
+表示默认优先使用它。
 
-### 使用 `@Primary`
-
-```java
-@Primary
-@Repository
-public class TxtUserDaoImpl implements UserDao {
-}
-```
-
-表示默认优先使用该实现。
-
-### 使用 `@Qualifier`
+### `@Qualifier`
 
 ```java
 public UserServiceImpl(
@@ -672,320 +455,150 @@ public UserServiceImpl(
 }
 ```
 
-表示明确指定 Bean 名称。
+表示在这个位置明确选择 Bean 名称。
 
-> **注意：** 只有一个实现类时，不需要使用 `@Primary` 或 `@Qualifier`。
+### `@Resource`
 
-### 使用 `@Resource`
+```java
+import jakarta.annotation.Resource;
 
-`@Resource(name = "...")` 可以明确按 Bean 名称注入；未显式指定 `name` 时，Spring 通常先按默认名称查找，找不到时再尝试按类型匹配。​
-
-```java 
-@RestController​
-public class UserController {​
-	@Resource(name = "userServiceImpl")​
-	private UserService userService;​
+@Resource(name = "txtUserDaoImpl")
+private UserDao userDao;
 ```
 
-<font color="#e36c09">​面试题：@Autowired 与 @Resource 的区别​</font>
-<font color="#e36c09">@Autowired 是 spring 框架提供的注解，而@Resource 是 JDK 提供的注解​</font>
-<font color="#e36c09">@Autowired 默认是按照类型注入，而@Resource 是按照名称注入</font>
+`@Resource` 来自 Jakarta Annotation API，不是 Spring 注解，也不能简单说成 JDK 21 自带。显式写 `name` 时按名称选择很清楚；未写名称时 Spring 还有名称和类型匹配规则。
+
+> [!note] 推荐顺序
+> 仍优先使用构造器注入；需要区分多个实现时，在构造器参数上使用 `@Qualifier`。
 
 ---
 
-## 16. 推荐的项目结构
+## 9. 从 Java 包分层到 Maven 多模块
+
+**结论：三层架构是职责思想，Java 包用于整理源码，Maven 模块进一步建立构建依赖边界。**
+
+单模块可以按包组织：
 
 ```text
-src/main/java/org/example/hellospring
-├─ HelloSpringApplication.java
-└─ user
-   ├─ controller
-   │  └─ UserController.java
-   ├─ service
-   │  ├─ UserService.java
-   │  └─ impl
-   │     └─ UserServiceImpl.java
-   ├─ dao
-   │  ├─ UserDao.java
-   │  └─ impl
-   │     └─ TxtUserDaoImpl.java
-   └─ model
-      └─ User.java
-
-src/main/resources
-├─ application.properties
-├─ users.txt
-└─ static
-   └─ index.html
+com.tanhong
+├─ controller
+├─ service
+├─ mapper
+└─ pojo
 ```
 
-Java 包名使用全小写：
+当前项目进一步拆成：
 
 ```text
-controller
-service
-dao
-model
+employee-management
+├─ employee-model
+├─ employee-dao
+├─ employee-service
+└─ employee-web
 ```
 
-不推荐：
-
-```text
-Controller
-Service
-Dao
+```mermaid
+flowchart LR
+    WEB["employee-web"] --> SERVICE["employee-service"]
+    WEB --> MODEL["employee-model"]
+    SERVICE --> DAO["employee-dao"]
+    SERVICE --> MODEL
+    DAO --> MODEL
 ```
 
-> **注意：** Windows 文件系统通常不区分大小写，但 Linux 区分。遵守全小写包名规范可以减少部署问题。
+| 模块 | 主要职责 |
+|---|---|
+| `employee-model` | 实体、查询参数、统一结果 |
+| `employee-dao` | Mapper 接口和 XML |
+| `employee-service` | 业务逻辑、事务、业务异常 |
+| `employee-web` | Controller、安全、AOP、配置和页面 |
+
+依赖方向应保持单向，Dao 不能反向依赖 Service。多模块细节见 [[12、Maven高级与多模块项目]]。
 
 ---
 
-## 17. 正确的核心代码骨架
+## 10. 重要误区与问答
 
-### `UserDao`
+**结论：分层和注入的价值在于职责及依赖关系，不在于注解和接口数量。**
 
-```java
-public interface UserDao {
+### 误区：定义接口就一定低耦合
 
-    List<User> findAll();
-}
-```
-
-### `TxtUserDaoImpl`
+如果仍然写：
 
 ```java
-@Repository
-public class TxtUserDaoImpl implements UserDao {
-
-    @Override
-    public List<User> findAll() {
-        // 读取并解析 users.txt
-        return users;
-    }
-}
+new TxtUserDaoImpl();
 ```
 
-### `UserService`
+代码依然依赖具体实现。反过来，简单 Service 只有一个稳定实现时，也不必机械地创建接口。
 
-```java
-public interface UserService {
+### 误区：`@Autowired` 会生成构造器
 
-    List<User> findAll();
-}
-```
+不会。它只声明注入点。唯一构造器可省略 `@Autowired`，构造器本身必须由源码或 Lombok 提供。
 
-### `UserServiceImpl`
+### 误区：`@Service` 和 `@Component` 要一起写
 
-```java
-@Service
-public class UserServiceImpl implements UserService {
+不需要。保留语义更明确的 `@Service` 即可。
 
-    private final UserDao userDao;
+### 误区：在业务接口上标 `@Service`
 
-    public UserServiceImpl(UserDao userDao) {
-        this.userDao = userDao;
-    }
+普通接口不能实例化，应标在实现类。MyBatis Mapper 能成为 Bean，是因为 MyBatis 创建了代理。
 
-    @Override
-    public List<User> findAll() {
-        return userDao.findAll();
-    }
-}
-```
+### 误区：分层越多越好
 
-### `UserController`
+分层是为了降低复杂度。小功能无需为每个操作建立接口和实现类；出现清晰业务边界时再抽象。
 
-```java
-@RestController
-@RequestMapping("/api/users")
-public class UserController {
+### 问：为什么更换数据源时 Service 最好不改？
 
-    private final UserService userService;
+因为 Service 只处理 `User` 业务，不知道 txt 行格式或 SQL 细节。数据源变化应主要留在 Dao/Mapper。
 
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
+### 问：为什么 Controller 不直接调用 Mapper？
 
-    @GetMapping
-    public List<User> getUsers() {
-        return userService.findAll();
-    }
-}
-```
+这样会绕过业务规则和事务边界。功能简单时看似省代码，增长后容易让同一规则散落在多个 Controller。
+
+### 问：什么时候不需要 Service 接口？
+
+只有一个简单实现、没有替换需求且团队没有接口规范时，可以直接注入实现类。以后出现多实现或模块契约时再抽接口。
 
 ---
 
-## 18. 常见误区
+## 11. 正式项目还会增加什么
 
-### 误区一：定义了接口就一定是低耦合
+**结论：三层稳定后，再用 DTO、统一响应、校验和异常处理保护接口边界。**
 
-虽然定义了 `UserDao`，但如果仍然写：
+- 请求 DTO：只接收接口允许的字段；
+- 响应 DTO/VO：避免密码等内部字段泄漏；
+- `Result<T>` 或 `ResponseEntity`：表达响应；
+- `@Valid`：校验请求格式；
+- `@RestControllerAdvice`：统一处理异常；
+- `@Transactional`：保证一组数据库操作一致完成。
 
-```java
-new UserDaoImpl();
-```
+这些内容详见：
 
-代码依然依赖具体实现，不是真正的低耦合。
-
-### 误区二：`@Autowired` 会生成构造器
-
-不会。`@Autowired` 只告诉 Spring 使用哪个注入点，不负责生成 Java 代码。
-
-### 误区三：删除构造器后 Spring 会自动补上
-
-Spring 只会自动使用已经存在的唯一构造器，不会创建源代码中不存在的构造器。
-
-### 误区四：`@Service` 和 `@Component` 要一起使用
-
-不需要：
-
-```java
-@Service
-@Component
-public class UserServiceImpl {
-}
-```
-
-只保留：
-
-```java
-@Service
-public class UserServiceImpl {
-}
-```
-
-### 误区五：Dao 只负责读取字节或字符串
-
-数据层通常还负责将底层数据映射为领域对象。让 Dao 返回 `List<User>`，可以避免 txt 格式泄漏到 Service。
-
-### 误区六：所有方法都写 `throws Exception`
-
-`Exception` 范围太宽，会让上层无法判断具体错误。
-
-更合适的方式包括：
-
-- 使用更具体的异常。
-- 在 Dao 内转换为自定义数据访问异常。
-- 使用全局异常处理器统一返回错误响应。
-
-### 误区七：分层越多越好
-
-三层架构是为了降低复杂度，不是为了增加类的数量。小型学习案例不需要把每一行操作都拆成接口。
+- [[5、Web接口工程化基础：DTO、校验、异常与跨域]]
+- [[7、Spring事务与传播行为]]
 
 ---
 
-## 19. 如何判断是否实现高内聚、低耦合
+## 12. 最终检查
 
-可以通过“修改影响范围”进行判断。
+**结论：通过“职责、依赖、创建方式、修改影响”四个方向检查分层质量。**
 
-### 场景一：txt 换成 MySQL
-
-理想情况：
-
-- 主要新增或修改 Dao 实现。
-- Service 不关心数据源。
-- Controller 不需要修改。
-- HTML 不需要修改。
-
-### 场景二：增加“只展示成年人”
-
-理想情况：
-
-- 修改 Service 业务逻辑。
-- Dao 仍然负责返回用户数据。
-- Controller 不需要修改。
-
-### 场景三：接口地址发生变化
-
-理想情况：
-
-- 修改 Controller 映射。
-- Service 和 Dao 不需要修改。
-- 前端请求地址需要同步调整。
-
-如果一个小需求导致 Controller、Service、Dao 全部修改，说明职责或抽象边界可能不合理。
+- [ ] Controller 是否主要处理请求和响应？
+- [ ] Service 是否集中业务规则和事务边界？
+- [ ] Dao/Mapper 是否隐藏数据源和映射细节？
+- [ ] 是否还在业务代码中 `new` Service 或 Dao 实现？
+- [ ] `@Service` 是否标在实现类而不是普通接口？
+- [ ] 是否优先使用构造器注入？
+- [ ] 省略手写构造器时，是否确实有 Lombok 生成？
+- [ ] 多个实现是否使用 `@Primary` 或 `@Qualifier`？
+- [ ] 更换数据源时，Controller 和业务规则是否基本不受影响？
+- [ ] Maven 模块依赖是否保持单向？
 
 ---
 
-## 20. 正式项目还可以继续改进
+## 一句话总结
 
-### 使用 DTO 隔离前端和内部模型
-
-不直接返回 `User`，而是返回：
-
-```java
-public record UserResponse(
-        Integer id,
-        String name,
-        Integer age,
-        String email
-) {
-}
-```
-
-这样内部 `User` 增加密码等字段时，不会意外返回给前端。
-
-### 使用统一响应结构
-
-```json
-{
-  "code": 200,
-  "message": "操作成功",
-  "data": []
-}
-```
-
-### 使用全局异常处理
-
-通过 `@RestControllerAdvice` 统一处理业务异常和数据异常，避免每个 Controller 重复编写错误响应。
-
-> **学习建议：** 先掌握三层职责、接口依赖和构造器注入，再学习 DTO、统一响应和全局异常处理。
-
----
-
-## 21. 核心知识点对照
-
-| 知识点 | 核心问题 | 本案例中的体现 |
-|---|---|---|
-| 三层架构 | 代码如何分工 | Controller、Service、Dao |
-| 高内聚 | 一个类是否只做一类工作 | Dao 只管数据，Service 只管业务 |
-| 低耦合 | 类是否依赖具体实现 | 依赖 `UserDao` 而不是 `UserDaoImpl` |
-| IoC | 对象由谁创建和管理 | Spring 容器创建各层 Bean |
-| DI | 依赖对象如何传入 | 构造器注入 |
-| Bean | 什么对象被 Spring 管理 | 带组件注解的类实例 |
-| `@Component` | 注册通用 Bean | 普通 Spring 组件 |
-| `@Service` | 注册业务 Bean | `UserServiceImpl` |
-| `@Repository` | 注册数据访问 Bean | `TxtUserDaoImpl` |
-| `@RestController` | 注册 REST 控制器 | `UserController` |
-| `@Autowired` | 指定自动注入 | 单构造器时可以省略 |
-
----
-
-## 22. 最终自检清单
-
-在完成分层后，可以逐项检查：
-
-- [ ] Controller 是否只处理请求和响应？
-- [ ] Service 是否主要处理业务规则？
-- [ ] Dao 是否隐藏了具体数据源和数据格式？
-- [ ] Controller 是否依赖 Service 接口？
-- [ ] Service 是否依赖 Dao 接口？
-- [ ] 是否还存在 `new UserServiceImpl()` 或 `new UserDaoImpl()`？
-- [ ] 实现类是否使用了正确的 Spring 组件注解？
-- [ ] 是否重复使用了 `@Service` 和 `@Component`？
-- [ ] 是否优先采用构造器注入？
-- [ ] 单构造器省略 `@Autowired` 时，构造器本身是否仍然存在？
-- [ ] Dao 是否返回 `User`，而不是向 Service 暴露 txt 原始字符串？
-- [ ] 是否避免随意声明 `throws Exception`？
-- [ ] Java 包名是否全部使用小写？
-- [ ] 更换数据源时，Controller 和业务代码是否基本不受影响？
-
----
-
-## 23. 一句话总结
-
-> 三层架构通过 Controller、Service、Dao 分离请求、业务和数据职责；高内聚要求每一层专注自己的工作，低耦合要求上层依赖接口而不是具体实现；IoC 将对象创建权交给 Spring，DI 则由 Spring 将各层需要的依赖通过构造器注入，从而让代码更容易替换、测试和维护。
-
+> 三层架构分离请求、业务和数据职责；高内聚让每个类专注，低耦合减少对具体实现的了解；IoC 把对象交给 Spring 管理，DI 再通过已有构造器连接 Bean，从而让代码更容易替换、测试和维护。
 
 ---
 
@@ -993,5 +606,6 @@ public record UserResponse(
 
 - [[3、MyBatis知识点总结]]
 - [[5、Web接口工程化基础：DTO、校验、异常与跨域]]
-
+- [[10、Bean进阶：作用域、第三方Bean与Import]]
+- [[12、Maven高级与多模块项目]]
 - [[0、SpringBoot笔记目录与学习路线|返回笔记目录]]

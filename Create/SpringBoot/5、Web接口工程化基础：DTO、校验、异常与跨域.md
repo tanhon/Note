@@ -1,8 +1,22 @@
 # Web 接口工程化基础：DTO、校验、异常与跨域
 
+## 本篇快速复习
+
+- `@RequestParam`、`@PathVariable` 和 `@RequestBody` 解决“数据从请求的哪里来”，DTO 解决“接口允许接收和返回哪些字段”。
+- 请求格式校验放在 Controller/DTO，业务规则放在 Service，数据库约束提供最后保护。
+- 业务异常描述“为什么不能做”，`@RestControllerAdvice` 负责把异常转换成安全、统一的 HTTP 响应。
+- `Result.success()` 没有传数据时，`data` 为 `null` 是正常的；要返回对象应调用 `Result.success(data)`。
+- 不要用 `toString()` 代替 JSON；直接返回对象，由 Jackson 按字段序列化。
+- 密码等敏感字段不能返回前端，可使用响应 DTO，当前项目还使用 `@JsonProperty(WRITE_ONLY)` 作为保护。
+- Spring Security 异常发生在 Controller 之前，通常由安全过滤器链中的处理器响应，不完全依赖普通全局异常处理器。
+- 同源静态页面通常没有 CORS；前后端端口、协议或域名不同才需要处理跨域。
+
 > 本文在三层架构基础上，补充正式 Web 项目中常见的 DTO、参数校验、统一错误处理和跨域问题。
 >
 > 为突出核心逻辑，代码片段省略了 `package` 和部分 `import`。IDEA 可自动导入所需类型；校验注解应来自 `jakarta.validation`。
+
+> [!note] 当前项目状态
+> `employee-management` 已有统一 `Result`、业务异常和全局异常处理，但还没有全面改成请求/响应 DTO 与 Bean Validation。本篇同时包含“已经使用的做法”和“下一步工程化建议”。
 
 ## 1. 为什么不直接使用数据库实体接收和返回数据
 
@@ -153,6 +167,8 @@ public UserResponse findById(Integer id) {
 
 Service 不需要知道 HTTP 状态码；异常如何转换为 HTTP 响应由 Web 层统一决定。
 
+当前项目中的真实例子是：删除班级前先查询该班级是否还有学生，如果有则抛出 `ClazzHasStudentsException`。这是可预料的业务冲突，不是系统崩溃，通常转换为 `409 Conflict`，服务端日志可记录为 `WARN`。
+
 ## 6. 全局异常处理
 
 可以使用 `@RestControllerAdvice` 集中处理异常：
@@ -205,6 +221,54 @@ public class GlobalExceptionHandler {
 > [!warning] 注意
 > 不要把异常堆栈、SQL、数据库密码等内部细节直接返回给前端。详细异常写入服务端日志，前端只接收必要说明。
 
+常见异常可以这样分类：
+
+| 异常场景 | 建议状态码 | 说明 |
+|---|---:|---|
+| 参数缺失、类型错误、JSON 无法解析 | `400` | 客户端请求格式不正确 |
+| DTO 校验失败 | `400` | 字段不符合约束 |
+| 未登录 | `401` | 身份尚未认证 |
+| 已登录但没有权限、CSRF 校验失败 | `403` | 请求被安全机制拒绝 |
+| 资源不存在 | `404` | 查询目标不存在 |
+| 重复用户名、班级仍有学生 | `409` | 业务状态冲突 |
+| 未知代码错误、数据库故障 | `500` | 服务器内部错误 |
+
+> [!warning] 异常与事务
+> Service 抛出的异常还会影响事务是否回滚。不要在中间层捕获异常后什么都不做，详细规则见 [[7、Spring事务与传播行为]]。
+
+### 一问一答：为什么 `data` 是 `null`
+
+假设统一响应类提供两个重载：
+
+```java
+public static Result success() {
+    return new Result(1, "success", null);
+}
+
+public static Result success(Object data) {
+    return new Result(1, "success", data);
+}
+```
+
+那么：
+
+```java
+return Result.success();       // data = null
+return Result.success(emp);    // data = emp
+```
+
+如果明明调用了 `success(emp)` 仍然为 `null`，应检查有参重载内部是否真的把参数赋给 `data`，以及 Controller 是否调用了正确的重载。
+
+### 一问一答：能不能使用 `toString()` 返回完整员工
+
+不能把它当作正式 JSON 响应。`toString()` 只是给人阅读的普通字符串，格式可能随代码变化，还可能包含密码。正确做法是返回对象或响应 DTO：
+
+```java
+return Result.success(emp);
+```
+
+Jackson 会生成结构化 JSON。当前 `Emp.password` 使用 `@JsonProperty(access = WRITE_ONLY)`，允许请求中接收密码，但响应序列化时不输出密码；更严格的正式项目仍建议使用专门的响应 DTO。
+
 ## 7. 是否必须统一成功响应
 
 有些项目把成功结果包装成：
@@ -253,6 +317,8 @@ public class UserController {
 
 > [!danger] 注意
 > 不要在正式项目中随意允许所有来源、所有方法并携带凭证，这会扩大安全风险。
+
+使用 Session Cookie 时，跨域还会涉及浏览器凭证策略、SameSite 和 CSRF，不能只加一个 `@CrossOrigin("*")`。登录与 CSRF 的完整说明见 [[8、登录认证与Spring Security：Session、Cookie、CSRF与BCrypt]]。
 
 ## 9. 包结构建议
 

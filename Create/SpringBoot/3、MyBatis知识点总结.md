@@ -1,858 +1,86 @@
-> 配套项目：`D:\Springboot\Springboot-mybatis`  
-> 技术环境：JDK 21、Spring Boot 4、MyBatis、MySQL、Druid
+# MyBatis 知识点总结
+
+## 本篇快速复习
+
+- MyBatis 位于 Service 与数据库之间，通过 Mapper 代理执行 SQL、设置参数并封装结果。
+- 简单 SQL 可以写注解；动态 SQL、多表查询和复杂结果映射更适合 XML。
+- `#{}` 使用预编译参数，普通值优先使用；`${}` 是直接拼接，必须经过白名单校验。
+- `resultType` 适合普通对象；字段不一致或存在一对多关系时使用 `resultMap`。
+- `<where>`、`<set>`、`<foreach>` 分别处理动态条件、动态更新和集合遍历。
+- `AUTO_INCREMENT` 负责生成主键，`useGeneratedKeys` 只负责把主键写回 Java 对象。
+- 多条相关写操作由 Spring 在 Service 层管理事务，详见 [[7、Spring事务与传播行为]]。
+
+> 入门案例：`D:\Springboot\Springboot-mybatis`，用于学习 `UserMapper` 和基础 CRUD。
+>
+> 当前案例：`D:\Springboot\employee-management`，使用 JDK 21、Spring Boot 4、MyBatis 与 MySQL。
 
 ---
 
 ## 1. MyBatis 是什么
 
-MyBatis 是一个 Java 持久层框架，主要负责：
+MyBatis 是 Java 持久层框架，替我们完成 JDBC 中大量重复工作：
 
-- 执行 SQL。
+- 获取连接并执行 SQL。
 - 给 SQL 设置参数。
-- 将查询结果转换成 Java 对象。
-- 将 Mapper 接口方法与 SQL 建立映射。
-
-它简化了 JDBC 中创建连接、创建 `PreparedStatement`、遍历 `ResultSet` 等重复代码，但 SQL 通常仍由开发者编写。
+- 遍历查询结果并转换为 Java 对象。
+- 将 Mapper 方法与 SQL 建立映射。
 
 ```text
-Controller
-    ↓
-Service
-    ↓
-Mapper 接口
-    ↓
-MyBatis
-    ↓
-数据库
+Controller → Service → Mapper代理 → MyBatis → MySQL
 ```
 
-> **注意：** MyBatis 不负责创建数据库和数据表，也不是数据库。它是 Java 程序与数据库之间的数据访问工具。
+> [!important] MyBatis 不是什么
+> 它不是数据库，不负责创建表，也不会替开发者决定业务规则。SQL 和事务边界仍需要开发者设计。
 
 ---
 
-## 2. 项目中的核心组成
-
-当前项目的主要文件：
+## 2. 当前多模块项目中的位置
 
 ```text
-Springboot-mybatis
-├─ src/main/java/com/tanhong
-│  ├─ SpringbootMybatisApplication.java
-│  ├─ mapper
-│  │  └─ UserMapper.java
-│  └─ pojo
-│     └─ User.java
-│
-├─ src/main/resources
-│  ├─ application.yml
-│  └─ com/tanhong/mapper
-│     └─ UserMapper.xml
-│
-└─ src/test/java/com/tanhong/springbootmybatis
-   └─ SpringbootMybatisApplicationTests.java
+employee-web       Controller、启动类、application.yaml、MyBatis自动配置
+      ↓
+employee-service   Service、PageHelper、事务边界
+      ↓
+employee-dao       Mapper接口、Mapper XML
+      ↓
+employee-model     Emp、EmpExpr、Clazz、Student等对象
 ```
 
-各部分职责：
+模块化改变的是文件位置和依赖边界，不改变三层调用顺序。
 
-| 组成 | 作用 |
-|---|---|
-| `User` | 保存一条用户记录 |
-| `UserMapper` | 定义数据库操作方法 |
-| `UserMapper.xml` | 编写 SQL 和结果映射 |
-| `application.yml` | 配置数据源和连接池 |
-| MyBatis Starter | 自动配置 MyBatis 与 Spring |
-| MySQL Driver | 连接 MySQL |
-| Druid | 提供数据库连接池 |
-
----
-
-## 3. Mapper 接口与代理对象
-
-Mapper 接口只定义数据库操作，不需要手写实现类：
-
-```java
-@Mapper
-public interface UserMapper {
-
-    List<User> findAll();
-
-    Integer deleteById(@Param("id") Integer id);
-}
-```
-
-`@Mapper` 的作用：
-
-1. 告诉 MyBatis 这是一个 Mapper 接口。
-2. MyBatis 在运行时创建代理对象。
-3. 代理对象根据方法找到对应 SQL。
-4. 执行 SQL 并返回结果。
-5. 代理对象作为 Bean 交给 Spring 管理。
-
-因此可以直接注入：
-
-```java
-@Autowired
-private UserMapper userMapper;
-```
-
-也可以在启动类统一扫描：
+启动类统一扫描 Mapper：
 
 ```java
 @MapperScan("com.tanhong.mapper")
 @SpringBootApplication
-public class SpringbootMybatisApplication {
+public class EmployeeManagementApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(EmployeeManagementApplication.class, args);
+    }
 }
 ```
 
-使用 `@MapperScan` 后，Mapper 接口可以不逐个添加 `@Mapper`。
-
-> **注意：** `UserMapper` 是接口，真正执行方法的是 MyBatis 创建的代理对象，不是 Java 自动生成的普通实现类。
+使用 `@MapperScan` 后，每个 Mapper 接口不必再单独添加 `@Mapper`。
 
 ---
 
-## 4. SQL 的两种写法
-
-### 4.1 注解方式
-
-SQL 直接写在 Mapper 接口上：
+## 3. Mapper 接口为什么没有实现类
 
 ```java
-@Select("select * from user")
-List<User> findAll();
-```
-
-常见注解：
-
-| 注解 | 作用 |
-|---|---|
-| `@Select` | 查询 |
-| `@Insert` | 新增 |
-| `@Update` | 修改 |
-| `@Delete` | 删除 |
-
-适合简单、短小的 SQL。
-
-### 4.2 XML 方式
-
-Mapper 接口：
-
-```java
-List<User> findAll();
-```
-
-XML：
-
-```xml
-<select id="findAll" resultType="com.tanhong.pojo.User">
-    select * from user
-</select>
-```
-
-适合复杂 SQL、动态查询和多表映射。
-
-> **注意：** 同一个 Mapper 方法不要同时使用注解 SQL 和 XML SQL，否则会出现语句重复映射问题。两种方式选择一种即可。
-
----
-
-## 5. Mapper XML 的对应规则
-
-当前 XML：
-
-```xml
-<mapper namespace="com.tanhong.mapper.UserMapper">
-
-    <select id="findAll"
-            resultType="com.tanhong.pojo.User">
-        select * from user
-    </select>
-
-</mapper>
-```
-
-必须满足：
-
-### 5.1 `namespace` 对应接口完整类名
-
-```xml
-namespace="com.tanhong.mapper.UserMapper"
-```
-
-对应：
-
-```java
-package com.tanhong.mapper;
-
 public interface UserMapper {
+    List<User> findAll();
+    int deleteById(@Param("id") Integer id);
 }
 ```
 
-### 5.2 SQL 的 `id` 对应方法名
+运行时，MyBatis 为接口创建代理对象：
 
-```xml
-<select id="findAll">
-```
+1. 根据接口完整类名和方法名找到映射语句。
+2. 设置参数并执行 SQL。
+3. 将结果封装成返回类型。
+4. 把代理对象作为 Bean 交给 Spring 注入。
 
-对应：
-
-```java
-List<User> findAll();
-```
-
-### 5.3 `resultType` 对应返回对象
-
-```xml
-resultType="com.tanhong.pojo.User"
-```
-
-表示将一行查询结果转换成一个 `User` 对象。
-
-> **注意：** `namespace` 或 `id` 错误时，常见异常是 `Invalid bound statement (not found)`。
-
----
-
-## 6. XML 文件放在哪里
-
-当前项目将 XML 放在：
-
-```text
-src/main/resources/com/tanhong/mapper/UserMapper.xml
-```
-
-这个路径与 Mapper 接口包路径一致：
-
-```text
-com/tanhong/mapper/UserMapper.java
-com/tanhong/mapper/UserMapper.xml
-```
-
-MyBatis 可以按接口路径找到 XML。
-
-也可以统一放到：
-
-```text
-src/main/resources/mapper/UserMapper.xml
-```
-
-此时建议配置：
-
-```yaml
-mybatis:
-  mapper-locations: "classpath:mapper/*.xml"
-```
-
-> **注意：** Mapper XML 应放在 `resources` 下，不要放在 `static`、`templates` 或普通 Java 源码目录。
-
----
-
-## 7. 基本 CRUD
-
-### 7.1 查询
-
-```java
-@Select("select * from user where id = #{id}")
-User findById(@Param("id") Integer id);
-```
-
-XML：
-
-```xml
-<select id="findById"
-        resultType="com.tanhong.pojo.User">
-    select id, username, password, name, age
-    from user
-    where id = #{id}
-</select>
-```
-
-### 7.2 新增
-
-```java
-@Insert("""
-    insert into user(username, password, name, age)
-    values(
-        #{user.username},
-        #{user.password},
-        #{user.name},
-        #{user.age}
-    )
-    """)
-int insert(@Param("user") User user);
-```
-
-### 7.3 修改
-
-单个对象参数可以直接使用对象属性：
-
-```java
-@Update("""
-    update user
-    set username = #{username},
-        password = #{password},
-        name = #{name},
-        age = #{age}
-    where id = #{id}
-    """)
-int update(User user);
-```
-
-### 7.4 删除
-
-```java
-@Delete("delete from user where id = #{id}")
-int deleteById(@Param("id") Integer id);
-```
-
-增、改、删方法建议返回 `int`，表示受影响行数：
-
-```text
-0 → 没有记录受到影响
-1 → 成功处理一条记录
-```
-
-> **注意：** `update` 和 `delete` 必须仔细检查 `where` 条件，否则可能修改或删除整张表。
-
----
-
-## 8. `@Param` 参数命名
-
-`@Param` 给 Mapper 方法参数定义一个可供 SQL 使用的名字。
-
-```java
-User findByNameAndAge(
-        @Param("name") String name,
-        @Param("age") Integer age
-);
-```
-
-SQL：
-
-```sql
-where name = #{name}
-  and age = #{age}
-```
-
-对应关系：
-
-```text
-@Param("name") → #{name}
-@Param("age")  → #{age}
-```
-
-对象参数：
-
-```java
-int insert(@Param("user") User user);
-```
-
-需要通过参数名访问属性：
-
-```text
-#{user.username}
-#{user.password}
-#{user.name}
-#{user.age}
-```
-
-单个对象不加 `@Param`：
-
-```java
-int update(User user);
-```
-
-可以直接写：
-
-```text
-#{id}
-#{username}
-#{password}
-#{name}
-#{age}
-```
-
-> **注意：** `@Param("user")` 和 `#{user.name}` 的名字必须一致。导入的注解必须是 `org.apache.ibatis.annotations.Param`。
-
----
-
-## 9. `#{}` 与 `${}`
-
-### 9.1 `#{}`：预编译参数
-
-```sql
-where id = #{id}
-```
-
-MyBatis 会使用类似 JDBC `PreparedStatement` 的占位参数：
-
-```sql
-where id = ?
-```
-
-优点：
-
-- 自动处理参数类型。
-- 自动处理字符串引号。
-- 可以防止大部分 SQL 注入。
-
-### 9.2 `${}`：直接字符串替换
-
-```sql
-order by ${column}
-```
-
-`${}` 会将字符串直接拼入 SQL，存在 SQL 注入风险。
-
-> **特别注意：** 普通查询条件和值必须优先使用 `#{}`。`${}` 只适合经过白名单校验的表名、列名或排序字段。
-
----
-
-## 10. 参数类型与返回结果
-
-### 10.1 `parameterType`
-
-XML 可以声明参数类型：
-
-```xml
-<select id="findById"
-        parameterType="java.lang.Integer"
-        resultType="com.tanhong.pojo.User">
-    select * from user where id = #{id}
-</select>
-```
-
-多数情况下 MyBatis 可以自动判断，`parameterType` 可以省略。
-
-### 10.2 `resultType`
-
-字段名和 Java 属性名一致时：
-
-```xml
-<select id="findAll"
-        resultType="com.tanhong.pojo.User">
-    select id, username, password, name, age
-    from user
-</select>
-```
-
-### 10.3 `resultMap`
-
-字段名与属性名不一致时，解决办法：
-<font color="#e36c09">1、可以手动映射：</font>
-
-```xml
-<resultMap id="userResultMap"
-           type="com.tanhong.pojo.User">
-    <!-- column 是数据库列名，property 是 Java 属性名 -->
-    <id property="id" column="user_id"/>
-    <result property="username" column="user_name"/>
-    <result property="password" column="user_password"/>
-    <result property="name" column="real_name"/>
-    <result property="age" column="user_age"/>
-</resultMap>
-```
-
-然后，在查询中引用：
-
-```xml
-<select id="findAll" resultMap="userResultMap">
-    select user_id,
-           user_name,
-           user_password,
-           real_name,
-           user_age
-    from user
-</select>
-```
-
-<font color="#e36c09">2、也可以使用 SQL 别名：</font>
-
-```SQL
-<select id="findAll" resultType="com.tanhong.pojo.User">
-    select user_id   as id,
-           user_name as username,
-           user_password as password,
-           real_name as name,
-           user_age  as age
-    from user
-</select>
-```
-
-
----
-
-## 11. 驼峰映射
-<font color="#e36c09">3、数据库通常使用下划线：</font>
-
-```text
-user_name
-```
-
-Java 通常使用驼峰：
-
-```text
-userName
-```
-
-可以在 `application.yml` 中开启：
-
-```yaml
-mybatis:
-  configuration:
-    map-underscore-to-camel-case: true
-```
-
-开启后，自动映射：
-
-```text
-user_name → userName
-```
-
-当前 `User` 字段与数据库列名基本一致，因此暂时不依赖该配置。
-
----
-
-## 12. 获取新增数据的自增主键
-
-插入一条数据后，数据库会自动生成一个主键 ID（自增），但 Java 对象里还没这个 ID，怎么拿回来？
-
-XML：
-
-```xml
-<!-- useGeneratedKeys 获取数据库生成的主键；keyProperty 指定写回的 Java 属性 -->
-<insert id="insert"
-        useGeneratedKeys="true"
-        keyProperty="id">
-    insert into user(username, password, name, age)
-    values(
-        #{username},
-        #{password},
-        #{name},
-        #{age}
-    )
-</insert>
-```
-
-执行：
-
-```java
-User user = new User();
-userMapper.insert(user);
-Integer id = user.getId();
-```
-
-插入成功后，数据库生成的主键会写回 `user.id`。
-
-如果参数使用了 `@Param("user")`，XML 中通常写：
-
-```xml
-keyProperty="user.id"
-```
-
----
-
-## 13. 动态 SQL
-
-动态 SQL 主要用于根据参数决定 SQL 片段。
-
-### 13.1 `<if>`
-
-```xml
-<if test="name != null and name != ''">
-    and name like concat('%', #{name}, '%')
-</if>
-```
-
-### 13.2 `<where>`
-
-```xml
-<select id="search"
-        resultType="com.tanhong.pojo.User">
-    select * from user
-    <where>
-        <if test="name != null and name != ''">
-            and name like concat('%', #{name}, '%')
-        </if>
-        <if test="age != null">
-            and age = #{age}
-        </if>
-    </where>
-</select>
-```
-
-`<where>` 会在有条件时添加 `where`，并处理开头多余的 `and` 或 `or`。
-
-### 13.3 `<set>`
-
-```xml
-<update id="updateSelective">
-    update user
-    <set>
-        <if test="username != null">
-            username = #{username},
-        </if>
-        <if test="name != null">
-            name = #{name},
-        </if>
-        <if test="age != null">
-            age = #{age},
-        </if>
-    </set>
-    where id = #{id}
-</update>
-```
-
-`<set>` 会添加 `set` 并处理末尾多余的逗号。
-
-### 13.4 `<foreach>`
-
-```java
-List<User> findByIds(
-        @Param("ids") List<Integer> ids
-);
-```
-
-```xml
-<select id="findByIds"
-        resultType="com.tanhong.pojo.User">
-    select * from user
-    where id in
-    <foreach collection="ids"
-             item="id"
-             open="("
-             separator=","
-             close=")">
-        #{id}
-    </foreach>
-</select>
-```
-
-### 13.5 `<choose>`
-
-类似 Java 的 `switch`：
-
-```xml
-<choose>
-    <when test="username != null">
-        and username = #{username}
-    </when>
-    <when test="name != null">
-        and name = #{name}
-    </when>
-    <otherwise>
-        and age >= 18
-    </otherwise>
-</choose>
-```
-
----
-
-## 14. XML 常用标签
-
-| 标签 | 作用 |
-|---|---|
-| `<mapper>` | Mapper XML 根标签 |
-| `<select>` | 查询 |
-| `<insert>` | 新增 |
-| `<update>` | 修改 |
-| `<delete>` | 删除 |
-| `<resultMap>` | 自定义结果映射 |
-| `<sql>` | 定义可复用 SQL 片段 |
-| `<include>` | 引用 SQL 片段 |
-| `<if>` | 条件判断 |
-| `<where>` | 动态生成 `where` |
-| `<set>` | 动态生成 `set` |
-| `<foreach>` | 遍历集合 |
-| `<choose>` | 多分支选择 |
-| `<trim>` | 自定义前后缀处理 |
-
-XML 中小于号需要转义：
-
-```xml
-age &lt; #{age}
-```
-
-或者使用 CDATA：
-
-```xml
-<![CDATA[
-    age < #{age}
-]]>
-```
-
----
-
-## 15. Spring Boot 配置
-
-当前数据源配置：
-
-```properties
-spring.application.name=Springboot-mybatis  
-#使用的是Druid（德鲁伊）数据库连接池，默认是Hikari（追光者）  
-spring.datasource.type=com.alibaba.druid.pool.DruidDataSource  
-#数据库访问的url地址  
-spring.datasource.url=jdbc:mysql://localhost:3306/jdbctest  
-#数据库驱动类类名  
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver  
-#访问数据库-用户名  
-spring.datasource.username=root  
-#访问数据库-密码  
-spring.datasource.password=123456
-```
-
-实际项目采用 yml 配置：
-
-```yaml
-spring:  
-  datasource:    
-  	type: com.alibaba.druid.pool.DruidDataSource  
-    driver-class-name: com.mysql.cj.jdbc.Driver  
-    url: jdbc:mysql://localhost:3306/jdbctest  
-    username: root  
-    password: "123456"  
-    druid:  
-      # Druid 专有配置  
-      initial-size: 5  
-      min-idle: 5  
-      max-active: 20  
-      stat-view-servlet:  
-        enabled: true  # 开启监控
-```
-
-常见 MyBatis 配置：
-
-```yaml
-mybatis:
-  mapper-locations: "classpath:mapper/*.xml"
-  type-aliases-package: com.tanhong.pojo
-  configuration:
-    map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-```
-
-说明：
-
-| 配置 | 作用 |
-|---|---|
-| `mapper-locations` | 指定 Mapper XML 路径 |
-| `type-aliases-package` | 扫描类型别名 |
-| `map-underscore-to-camel-case` | 开启下划线转驼峰 |
-| `log-impl` | 输出 SQL 日志，适合学习和调试 |
-
-> **注意：** 当前 XML 与 Mapper 接口使用相同类路径，因此不一定需要额外配置 `mapper-locations`。如果移动到统一的 `resources/mapper` 目录，就需要正确配置路径。
-
----
-
-## 16. 事务
-
-多个数据库操作必须作为一个整体成功或失败时，需要事务：
-
-```java
-@Transactional
-public void transferData() {
-    userMapper.update(...);
-    userMapper.insert(...);
-}
-```
-
-事务通常放在 Service 层，而不是 Mapper 层。
-
-默认情况下，Spring 主要对运行时异常进行回滚。
-
-需要检查型异常也回滚时：
-
-```java
-@Transactional(rollbackFor = Exception.class)
-```
-
-> **注意：** 不要在同一个类中通过 `this.method()` 调用带事务的方法并期望代理生效；事务依赖 Spring 代理。
-
----
-
-## 17. 缓存
-
-MyBatis 有两级缓存概念：
-
-- 一级缓存：`SqlSession` 范围，默认存在。
-- 二级缓存：Mapper namespace 范围，需要额外配置。
-
-数据发生修改后，相关缓存通常会被清理。
-
-学习初期应先掌握 CRUD、映射和动态 SQL，不建议过早开启二级缓存。
-
-> **注意：** 缓存可能带来数据一致性问题。正式项目不能只为了“提高性能”就盲目启用。
-
----
-
-## 18. 测试注意事项
-
-当前测试中包含：
-
-```text
-查询
-删除
-新增
-修改
-```
-
-除查询外，其他测试都会真实修改 `jdbctest` 数据库。
-
-可以在测试类或测试方法上添加：
-
-```java
-@Transactional
-```
-
-Spring 测试通常会在测试结束后回滚事务。
-
-也可以使用专门的测试数据库，避免影响开发数据。
-
-> **特别注意：** 删除、修改测试不要直接连接生产数据库。
-
----
-
-## 19. 当前项目需要特别注意
-
-### 19.1 不要打印明文密码
-
-当前 `User` 使用 Lombok `@Data`，生成的 `toString()` 会包含 `password`。
-
-下面的代码会把密码打印到控制台：
-
-```java
-System.out.println(user);
-```
-
-正式项目应隐藏密码字段，密码也不能以明文保存。
-
-### 19.2 SQL 注解和 XML 不要重复
-
-当前 `findAll()` 使用 XML，接口中的 `@Select` 已注释，这是正确方向。
-
-### 19.3 增删改建议返回影响行数
-
-当前 `insert()` 和 `update()` 返回 `void`，建议改成：
-
-```java
-int insert(User user);
-int update(User user);
-```
-
-便于判断操作是否成功。
-
-### 19.4 配置文件不要提交真实密码
-
-```yaml
-password: "123456"
-```
-
-学习项目可以暂时使用，正式项目推荐：
-
-```yaml
-password: "${DB_PASSWORD}"
-```
-
-### 19.5 使用构造器注入
-
-正式业务代码中推荐：
+因此 Service 可以使用构造器注入：
 
 ```java
 private final UserMapper userMapper;
@@ -862,95 +90,565 @@ public UserServiceImpl(UserMapper userMapper) {
 }
 ```
 
-不推荐大量使用字段注入。
+> [!note] 接口不是“自动写出了实现类”
+> 真正工作的是运行时代理对象。它把“调用 Java 方法”转换成“执行映射 SQL”。
 
 ---
 
-## 20. 常见异常排查
+## 4. 注解 SQL 与 XML SQL
 
-### `Invalid bound statement (not found)`
+### 注解方式
 
-检查：
+```java
+@Select("select id, username, name from user where id = #{id}")
+User findById(@Param("id") Integer id);
+```
 
-- XML 是否被加载。
-- `namespace` 是否等于 Mapper 完整类名。
-- SQL 标签 `id` 是否等于方法名。
-- `mapper-locations` 是否正确。
+常用注解：`@Select`、`@Insert`、`@Update`、`@Delete`。适合短小、固定的 SQL。
 
-### `Parameter 'xxx' not found`
+当前员工新增还使用了主键回填注解。下面为突出主键机制，省略了其他字段：
 
-检查：
+```java
+@Options(useGeneratedKeys = true, keyProperty = "id")
+@Insert("""
+    insert into emp(username, name, create_time, update_time)
+    values(#{username}, #{name}, #{createTime}, #{updateTime})
+    """)
+void insert(Emp emp);
+```
 
-- `@Param("xxx")` 与 `#{xxx}` 是否一致。
-- 对象参数是否应该写成 `#{user.name}`。
-- `<foreach collection="xxx">` 名字是否一致。
+### XML 方式
 
-### `Unknown column`
+```xml
+<select id="findAll" resultType="com.tanhong.pojo.User">
+    select id, username, name from user order by id
+</select>
+```
 
-检查：
+XML 更适合动态条件、批量操作、联表查询和 `resultMap`。
 
-- SQL 字段名是否正确。
-- 数据库表结构是否正确。
-- 是否把 Java 属性名误当成数据库列名。
-
-### 返回对象字段为 `null`
-
-检查：
-
-- 数据库列名和 Java 属性名是否一致。
-- 是否需要 SQL 别名。
-- 是否需要 `resultMap`。
-- 是否需要开启下划线转驼峰。
-
-### XML 解析错误
-
-检查：
-
-- 标签是否闭合。
-- `<` 是否写成 `&lt;` 或 CDATA。
-- XML 头和 `DOCTYPE` 是否正确。
+> [!danger] 同一个方法只保留一份 SQL
+> 不要同时给同一 Mapper 方法配置注解 SQL 和 XML SQL，否则会出现重复映射。
 
 ---
 
-## 21. 学习顺序
+## 5. Mapper XML 的对应规则与位置
 
-建议按照以下顺序学习：
+完整骨架：
 
-1. 数据源和 MySQL 连接。
-2. `@Mapper` 与 Mapper 代理。
-3. `select`、`insert`、`update`、`delete`。
-4. `@Param` 和 `#{}`。
-5. Mapper XML 的 `namespace`、`id`、`resultType`。
-6. `resultMap`。
-7. 动态 SQL。
-8. Service 层事务。
-9. 分页、批量操作和多表查询。
-10. 缓存与性能优化。
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tanhong.mapper.UserMapper">
+    <select id="findAll" resultType="com.tanhong.pojo.User">
+        select id, username, name from user
+    </select>
+</mapper>
+```
+
+必须对应：
+
+| XML | Java |
+|---|---|
+| `namespace="com.tanhong.mapper.UserMapper"` | Mapper 接口完整类名 |
+| `<select id="findAll">` | 方法名 `findAll()` |
+| `resultType="...User"` | 一行结果封装成 `User` |
+
+当前文件位置：
+
+```text
+employee-dao/
+├─ src/main/java/com/tanhong/mapper/EmpMapper.java
+└─ src/main/resources/com/tanhong/mapper/EmpMapper.xml
+```
+
+XML 在 DAO 模块的 JAR 中，Web 模块配置：
+
+```yaml
+mybatis:
+  mapper-locations: classpath*:/com/tanhong/mapper/*.xml
+```
+
+> [!important] `classpath*:`
+> 它会查找所有类路径位置，包括依赖模块的 JAR；当前多模块项目比只写 `classpath:` 更适合使用它。
 
 ---
 
-## 22. 核心自检清单
+## 6. CRUD、参数与返回值
 
-- [ ] Mapper 接口是否有 `@Mapper`，或启动类是否有 `@MapperScan`？
-- [ ] XML `namespace` 是否等于 Mapper 接口完整类名？
-- [ ] XML SQL 的 `id` 是否等于 Mapper 方法名？
-- [ ] `@Param` 名称是否与 `#{}` 一致？
-- [ ] 普通值是否使用 `#{}`，避免使用 `${}`？
-- [ ] 查询结果能否正确映射到 Java 属性？
-- [ ] 注解 SQL 和 XML SQL 是否避免重复？
-- [ ] 增删改是否检查了影响行数？
-- [ ] `update`、`delete` 是否有正确的 `where` 条件？
-- [ ] 多个操作是否需要放入 Service 事务？
-- [ ] 测试是否会修改真实数据库数据？
-- [ ] 密码等敏感信息是否避免写入日志和代码仓库？
+Mapper：
+
+```java
+public interface UserMapper {
+    User findById(@Param("id") Integer id);
+    int insert(User user);
+    int update(User user);
+    int deleteById(@Param("id") Integer id);
+}
+```
+
+XML：
+
+```xml
+<select id="findById" resultType="com.tanhong.pojo.User">
+    select id, username, name, age
+    from user
+    where id = #{id}
+</select>
+
+<insert id="insert">
+    insert into user(username, name, age)
+    values(#{username}, #{name}, #{age})
+</insert>
+
+<update id="update">
+    update user
+    set username = #{username}, name = #{name}, age = #{age}
+    where id = #{id}
+</update>
+
+<delete id="deleteById">
+    delete from user where id = #{id}
+</delete>
+```
+
+增、改、删建议返回影响行数：
+
+```text
+0 → 没有记录受到影响
+1 → 成功处理一条记录
+```
+
+> [!danger] 更新和删除必须检查 `where`
+> 缺少 `where` 可能修改或删除整张表。批量操作还应先判断 ID 集合是否为空。
+
+### `@Param` 怎么用
+
+它给 Mapper 参数起一个供 SQL 使用的名字：
+
+```java
+List<User> search(@Param("name") String name,
+                  @Param("age") Integer age);
+```
+
+```xml
+where name = #{name} and age = #{age}
+```
+
+常见规则：
+
+| Mapper 参数 | XML 写法 |
+|---|---|
+| `@Param("id") Integer id` | `#{id}` |
+| `@Param("user") User user` | `#{user.name}` |
+| 单个 `User user`，没有 `@Param` | `#{name}` |
+| `@Param("ids") List<Integer> ids` | `<foreach collection="ids">` |
+
+注解必须导入：
+
+```java
+org.apache.ibatis.annotations.Param
+```
 
 ---
 
-## 23. 一句话总结
+## 7. `#{}` 与 `${}`
 
-> MyBatis 通过 Mapper 接口和注解/XML 将 Java 方法映射为 SQL，使用 `#{}` 安全传参，通过 `resultType` 或 `resultMap` 将数据库记录转换成 Java 对象；在 Spring Boot 中，Mapper 由 MyBatis 生成代理并交给 Spring 管理，事务通常放在 Service 层。
+```sql
+where id = #{id}
+```
+
+`#{}` 会转换成预编译占位符 `?`，自动处理类型和引号，并防止大部分 SQL 注入。
+
+```sql
+order by ${column}
+```
+
+`${}` 会把文本直接拼进 SQL。它只能用于无法使用占位符的表名、列名或排序方向，并且必须先做白名单校验。
+
+```java
+String safeColumn = switch (column) {
+    case "id", "name", "entry_date" -> column;
+    default -> "id";
+};
+```
+
+> [!danger] 用户输入的普通值永远优先使用 `#{}`
+> 不要把前端传来的姓名、ID、关键字直接放入 `${}`。
 
 ---
+
+## 8. 自增主键：生成与回填是两回事
+
+| 功能 | 负责者 | 写法 |
+|---|---|---|
+| 生成新 ID | MySQL 表结构 | `id int primary key auto_increment` |
+| 把 ID 写回对象 | MyBatis | `useGeneratedKeys=true`、`keyProperty="id"` |
+
+```sql
+create table user (
+    id int primary key auto_increment,
+    username varchar(50) not null
+);
+```
+
+```xml
+<insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    insert into user(username) values(#{username})
+</insert>
+```
+
+```java
+userMapper.insert(user);
+Integer newId = user.getId();
+```
+
+参数若声明为 `@Param("user") User user`，XML 通常使用 `keyProperty="user.id"`。
+
+> [!warning] 常见误区
+> `useGeneratedKeys` 不会把普通列变成自增列；`AUTO_INCREMENT` 也不写在普通 `insert` 中。
+
+---
+
+## 9. 动态 SQL
+
+### 9.1 `<where>` 与 `<if>`
+
+```xml
+<select id="list" resultType="com.tanhong.pojo.Emp">
+    select e.id, e.username, e.name, e.entry_date
+    from emp e
+    <where>
+        <if test="name != null and name != ''">
+            and e.name like concat('%', #{name}, '%')
+        </if>
+        <if test="gender != null">
+            and e.gender = #{gender}
+        </if>
+        <if test="begin != null">
+            and e.entry_date &gt;= #{begin}
+        </if>
+    </where>
+    order by e.id
+</select>
+```
+
+`<where>` 在存在条件时添加 `where`，并删除最前面的多余 `and/or`。
+
+> [!warning] 它不会自动补连接词
+> 可以让每个可选条件都以 `and` 开头；不能把条件之间的 `and` 全部省略，否则两个条件同时成立时 SQL 仍然错误。
+
+类型判断：
+
+```xml
+<!-- String -->
+<if test="name != null and name != ''">...</if>
+
+<!-- Integer、LocalDate、LocalDateTime通常只判断null -->
+<if test="gender != null">...</if>
+<if test="begin != null">...</if>
+```
+
+不要对数字或日期写 `!= ''`。
+
+### 9.2 `<set>` 动态更新
+
+```xml
+<update id="updateById">
+    update emp
+    <set>
+        <if test="name != null and name != ''">name = #{name},</if>
+        <if test="gender != null">gender = #{gender},</if>
+        <if test="entryDate != null">entry_date = #{entryDate},</if>
+        <if test="updateTime != null">update_time = #{updateTime},</if>
+    </set>
+    where id = #{id}
+</update>
+```
+
+`<set>` 自动添加 `set` 并删除最后多余的逗号。
+
+> [!note] 选择性更新的限制
+> 条件为 `null` 时表示“不修改”，因此不能用同一写法表达“主动把字段改成 null”。若业务需要清空字段，应设计明确规则。
+
+### 9.3 `<foreach>` 批量操作
+
+批量删除：
+
+```xml
+<delete id="deleteByIds">
+    delete from emp where id in
+    <foreach collection="ids" item="id"
+             open="(" close=")" separator=",">
+        #{id}
+    </foreach>
+</delete>
+```
+
+批量插入工作经历：
+
+```xml
+<insert id="insertBatch">
+    insert into emp_expr(emp_id, `begin`, `end`, company, job) values
+    <foreach collection="exprList" item="expr" separator=",">
+        (#{expr.empId}, #{expr.begin}, #{expr.end},
+         #{expr.company}, #{expr.job})
+    </foreach>
+</insert>
+```
+
+> [!warning] 关键字列名
+> `begin`、`end` 可能与数据库关键字冲突，示例使用反引号保护。更理想的表结构是改用 `begin_date`、`end_date` 等含义明确的列名；当前源码未加反引号，迁移数据库版本时应特别验证。
+
+| 属性 | 含义 |
+|---|---|
+| `collection` | Mapper 集合参数名 |
+| `item` | 每次循环的元素名 |
+| `open/close` | 整段内容的开始与结束字符 |
+| `separator` | 元素之间的分隔符 |
+
+Service 要先设置外键，并避免空集合产生无效 SQL：
+
+```java
+if (!CollectionUtils.isEmpty(exprList)) {
+    exprList.forEach(expr -> expr.setEmpId(emp.getId()));
+    empExprMapper.insertBatch(exprList);
+}
+```
+
+`CollectionUtils.isEmpty` 对 `null` 和空集合都会返回 `true`。
+
+### 9.4 其他动态标签
+
+| 标签 | 作用 |
+|---|---|
+| `<choose>/<when>/<otherwise>` | 多个分支中选择一个，类似 `if/else if/else` |
+| `<sql>/<include>` | 定义并引用可复用 SQL 片段 |
+| `<trim>` | 自定义前缀、后缀和需要删除的内容 |
+
+XML 中的小于号写成 `&lt;`，或放在 CDATA 中。
+
+---
+
+## 10. 查询结果映射
+
+### 10.1 `resultType`、别名与驼峰
+
+列名与属性名一致时使用 `resultType`：
+
+```xml
+<select id="findAll" resultType="com.tanhong.pojo.User">
+    select id, username, name from user
+</select>
+```
+
+简单不一致可用 SQL 别名：
+
+```sql
+select user_name as userName from user
+```
+
+数据库下划线转 Java 驼峰：
+
+```yaml
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+```
+
+例如：
+
+```text
+entry_date → entryDate
+dept_id    → deptId
+```
+
+`parameterType` 多数情况下可省略，MyBatis 会根据实际参数判断；`resultType` 与 `resultMap` 在同一查询中二选一。
+
+### 10.2 `resultMap + collection` 封装工作经历
+
+一个员工对应多条工作经历：
+
+```text
+Emp 1 ─── 多 EmpExpr
+```
+
+联表结果会重复员工列，需要 `resultMap` 把多行合并成一个 `Emp` 和一个 `exprList`：
+
+```xml
+<resultMap id="empResultMap" type="com.tanhong.pojo.Emp">
+    <id column="id" property="id"/>
+    <result column="username" property="username"/>
+    <result column="dept_name" property="deptName"/>
+
+    <collection property="exprList" ofType="com.tanhong.pojo.EmpExpr">
+        <id column="ee_id" property="id"/>
+        <result column="ee_emp_id" property="empId"/>
+        <result column="ee_company" property="company"/>
+        <result column="ee_job" property="job"/>
+        <result column="ee_begin" property="begin"/>
+        <result column="ee_end" property="end"/>
+    </collection>
+</resultMap>
+
+<select id="getById" resultMap="empResultMap">
+    select e.id, e.username,
+           d.name as dept_name,
+           ee.id as ee_id,
+           ee.emp_id as ee_emp_id,
+           ee.company as ee_company,
+           ee.job as ee_job,
+           ee.`begin` as ee_begin,
+           ee.`end` as ee_end
+    from emp e
+    left join dept d on e.dept_id = d.id
+    left join emp_expr ee on e.id = ee.emp_id
+    where e.id = #{id}
+</select>
+```
+
+> [!important] 父子 `<id>`
+> 父级 `<id>` 用于合并同一员工，子级 `<id>` 用于区分不同经历。单个复杂对象使用 `<association>`，集合使用 `<collection>`；驼峰配置不能代替一对多映射。
+
+---
+
+## 11. 当前 Spring Boot 配置
+
+配置位于 `employee-web/src/main/resources/application.yaml`。下面是推荐整理方式，不是当前源码原样复制：
+
+```yaml
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/tlias
+    username: root
+    password: "${DB_PASSWORD:123456}"
+
+mybatis:
+  mapper-locations: classpath*:/com/tanhong/mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    # 仅用于学习和本地排错
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+```
+
+当前项目没有指定 Druid，使用 Spring Boot 默认的 HikariCP。正式环境不要把真实密码提交到 Git；配置详见 [[4、SpringBoot配置文件与日志]]。
+
+> [!warning] 当前源码现状
+> 当前 `application.yaml` 仍直接写着学习密码 `123456`；`${DB_PASSWORD:123456}` 是建议改造方式，正式环境应去掉真实默认密码。
+
+---
+
+## 12. MyBatis 与事务
+
+MyBatis 执行每条 SQL，Spring 把同一 Service 业务中的多条 SQL 组织成一个事务：
+
+```java
+@Transactional
+public void save(Emp emp) {
+    empMapper.insert(emp);
+    if (!CollectionUtils.isEmpty(emp.getExprList())) {
+        emp.getExprList().forEach(expr -> expr.setEmpId(emp.getId()));
+        empExprMapper.insertBatch(emp.getExprList());
+    }
+}
+```
+
+任何一步失败时，员工与经历应该一起回滚。回滚规则、代理失效和传播行为统一见 [[7、Spring事务与传播行为]]。
+
+---
+
+## 13. 当前项目常见问答
+
+### Q1：新增成功后，为什么 `exprList` 是空或 `null`？
+
+新增和查询是两套 SQL。`insertBatch` 只保存子表，详情查询仍需：
+
+1. `left join emp_expr`。
+2. 给子表列设置 `ee_` 别名。
+3. 使用带 `<collection>` 的 `resultMap`。
+
+若经历存在但 `empId` 为 `null`，检查：
+
+```sql
+ee.emp_id as ee_emp_id
+```
+
+```xml
+<result column="ee_emp_id" property="empId"/>
+```
+
+### Q2：数据库中有部门，为什么 `deptName` 是 `null`？
+
+依次检查：
+
+- `emp.dept_id` 是否能关联到 `dept.id`。
+- 是否执行了 `left join dept`。
+- 别名是否为 `dept_name`。
+- `resultMap` 是否包含 `column="dept_name" property="deptName"`。
+
+驼峰配置只能转换列名，不能修复 JOIN 错误或补出没查询的列。
+
+### Q3：前端不传时间，会自动使用当前时间吗？
+
+不会，未传属性通常是 `null`。可在 Service 使用 `LocalDateTime.now()`、在 SQL 使用数据库时间函数，或给数据库列设置默认值。当前项目由 Service 设置 `createTime/updateTime`。
+
+### Q4：为什么修改经历采用“全删再新增”？
+
+这是全量覆盖方案：简单但写操作较多，适合经历较少的学习项目；正式项目可以比较新旧列表后增量更新。两种方案都必须放在同一事务中。
+
+单个 ID 要传给批量方法时可以写：
+
+```java
+empExprMapper.deleteByEmpIds(List.of(emp.getId()));
+```
+
+### Q5：动态 `list()` 为什么主要用于分页？
+
+Mapper 提供普通条件 SQL。先调用 `PageHelper.startPage()`，下一次 `list()` 会被分页；不调用就是普通查询，因此不必复制一份分页 SQL。详见 [[6、分页查询与PageHelper]]。
+
+### Q6：字段为 `null` 都是驼峰失败吗？
+
+不一定，还可能是 SQL 没查该列、别名与 `resultMap` 不一致、缺少 `<collection>`，或者 `Result.success(data)` 没把参数赋给 `data`。`toString()` 只是字符串，不能代替对象映射或 Jackson JSON 序列化。
+
+---
+
+## 14. 常见错误速查
+
+| 现象 | 优先检查 |
+|---|---|
+| `Invalid bound statement` | XML 是否加载；`namespace`、`id` 是否对应 |
+| `Parameter 'xxx' not found` | `@Param`、`#{}`、`collection` 名称是否一致 |
+| `Unknown column` | 数据库列名是否正确，是否误写 Java 属性名 |
+| 返回属性为 `null` | SELECT 列、别名、驼峰配置、`resultMap` |
+| XML 解析失败 | 标签闭合；`<` 是否转义；DOCTYPE 是否正确 |
+
+> [!warning] 安全与测试
+> 不查询或返回密码字段；避免打印包含密码的整个对象；修改类测试不要连接生产数据库。MyBatis 二级缓存可能带来一致性问题，学习阶段不必开启。
+
+---
+
+## 15. 核心自检清单
+
+- [ ] Mapper 是否被 `@Mapper` 或 `@MapperScan` 扫描？
+- [ ] XML `namespace`、SQL `id` 是否与接口、方法对应？
+- [ ] 多模块 XML 是否通过 `classpath*:` 加载？
+- [ ] `@Param`、`#{}` 和 `<foreach collection>` 名称是否一致？
+- [ ] 普通值是否使用 `#{}`，`${}` 是否经过白名单？
+- [ ] `update/delete` 是否有正确的 `where`？
+- [ ] 动态条件是否保留了必要的 `and`，日期与数字是否只判断 `null`？
+- [ ] 一对多查询是否配置父、子 `<id>` 和 `<collection>`？
+- [ ] 数据库列是否配置 `AUTO_INCREMENT`，MyBatis 是否回填主键？
+- [ ] 多条关联写操作是否放进 Service 事务？
+- [ ] SQL 和日志是否避免泄露密码？
+
+---
+
+## 16. 一句话总结
+
+> MyBatis 用 Mapper 代理把 Java 方法映射成 SQL，用 `#{}` 安全传参，以动态标签组合 SQL，再用 `resultType/resultMap` 封装结果；当前多模块项目的 Mapper 与 XML 位于 DAO，自动配置位于 Web，关联写操作由 Service 事务保证完整性。
 
 ## 参考资料
 
@@ -959,12 +657,11 @@ public UserServiceImpl(UserMapper userMapper) {
 - [MyBatis 动态 SQL](https://mybatis.org/mybatis-3/dynamic-sql.html)
 - [MyBatis Spring Boot Starter](https://mybatis.org/spring-boot-starter/mybatis-spring-boot-autoconfigure/)
 
-
 ---
 
-## 继续学习
-
-- [[4、SpringBoot配置文件与日志]]
-- [[6、分页查询与PageHelper]]
+## 导航
 
 - [[0、SpringBoot笔记目录与学习路线|返回笔记目录]]
+- [[4、SpringBoot配置文件与日志|下一篇：配置文件与日志]]
+- [[6、分页查询与PageHelper|相关：分页查询]]
+- [[7、Spring事务与传播行为|相关：事务]]

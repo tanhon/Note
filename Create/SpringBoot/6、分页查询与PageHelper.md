@@ -1,46 +1,35 @@
 # 分页查询与 PageHelper
 
-> 分页的目标是：一次只查询一部分数据，避免把整张用户表全部加载到内存和前端。
+## 本篇快速复习
 
-## 1. 为什么需要分页
+- 分页是在数据库中只查询当前页，不是先查询全部数据再用 Java 截取。
+- MySQL 使用 `limit + offset`，`offset = (pageNum - 1) × pageSize`。
+- `PageHelper.startPage()` 只设置参数，必须紧接需要分页的 MyBatis 查询。
+- Mapper SQL 要有稳定的 `order by`，否则翻页可能重复或遗漏。
+- `PageInfo` 要接收 Mapper 返回的原始分页 List，否则 `total` 可能丢失。
+- 当前项目使用 Starter `4.1.1`、Core `6.1.1`，并开启 `reasonable: true`。
+- 对外使用项目自己的 `PageResult<T>`，避免暴露 PageHelper 内部结构。
 
-假设用户表有 10 万条数据，如果一次全部查询：
+> 本篇先用 `User` 说明原理，再用当前 `employee-management` 的员工分页展示实际写法。
 
-- 数据库查询和网络传输变慢。
-- Java 内存占用增加。
-- 前端渲染卡顿。
-- 用户也无法一次看完。
+---
 
-分页请求通常包含：
+## 1. 分页原理
+
+一次查询十万条数据会增加数据库、网络、Java 内存和前端渲染压力。分页请求通常包含：
 
 ```text
-pageNum  当前页，从 1 开始
+pageNum  当前页，从1开始
 pageSize 每页条数
 ```
 
-例如：
-
-```text
-GET /api/users?pageNum=2&pageSize=3
-```
-
-表示查询第 2 页，每页 3 条。
-
-## 2. MySQL 分页原理
-
-MySQL 常用：
+MySQL 示例：
 
 ```sql
-select id, username, name, age
+select id, username, name
 from user
 order by id
 limit 3 offset 3;
-```
-
-计算公式：
-
-```text
-offset = (pageNum - 1) × pageSize
 ```
 
 第 2 页、每页 3 条：
@@ -49,29 +38,14 @@ offset = (pageNum - 1) × pageSize
 offset = (2 - 1) × 3 = 3
 ```
 
-也就是跳过前 3 条，再取 3 条。
+> [!warning] 必须稳定排序
+> 没有 `order by` 时数据库不保证返回顺序。排序字段不唯一时，建议再加主键，例如 `order by update_time desc, id desc`。
 
-> [!warning] 必须排序
-> 分页查询应使用稳定的 `order by`，通常按主键排序。没有排序时，数据库不保证每次返回顺序一致，可能出现重复或遗漏。
-
-## 3. 手写 MyBatis 分页
-
-Mapper：
-
-```java
-List<User> findPage(
-        @Param("offset") int offset,
-        @Param("pageSize") int pageSize
-);
-
-long countAll();
-```
-
-XML：
+手写 MyBatis 分页需要两条查询：
 
 ```xml
 <select id="findPage" resultType="com.tanhong.pojo.User">
-    select id, username, name, age
+    select id, username, name
     from user
     order by id
     limit #{pageSize} offset #{offset}
@@ -82,216 +56,215 @@ XML：
 </select>
 ```
 
-优点是 SQL 和执行过程直观；缺点是每个分页查询都要处理 `limit`、`offset` 和总数查询。
+PageHelper 的价值就是统一处理分页 SQL 和总数查询。
 
-## 4. PageHelper 是什么
+---
 
-PageHelper 是 MyBatis 的分页插件。它会拦截紧随其后的查询，并根据数据库类型改写 SQL。
+## 2. 当前项目的依赖与配置
 
-Maven 依赖示例（`4.1.1` 是当前官方 README 的示例版本，依赖版本更新后应以官方说明为准）：
+```text
+pagehelper-spring-boot-starter  4.1.1
+pagehelper core                 6.1.1
+```
+
+`employee-web` 引入 Starter，启动时注册分页拦截器；`employee-service` 因直接使用 `PageHelper/PageInfo`，依赖 Core API。版本由父 POM 统一管理。
 
 ```xml
 <dependency>
     <groupId>com.github.pagehelper</groupId>
     <artifactId>pagehelper-spring-boot-starter</artifactId>
-    <version>4.1.1</version>
 </dependency>
 ```
 
-> [!warning] 当前项目注意
-> 当前项目已经显式使用 Spring Boot 4.x 和 `mybatis-spring-boot-starter` 4.x。加入 PageHelper Starter 前，应先查看该版本的官方兼容说明；加入后执行 `mvn dependency:tree`，确认没有混用不兼容的 MyBatis、MyBatis-Spring 或 Starter 版本。若发生冲突，先统一版本，不要继续叠加依赖尝试。
+当前配置：
 
-## 5. 最基本的使用方式
-
-Mapper 保持普通查询：
-
-```java
-List<User> findAll();
+```yaml
+pagehelper:
+  helper-dialect: mysql
+  reasonable: true
 ```
 
-XML 必须提供稳定排序：
+`reasonable: true` 会自动修正页码：
 
-```xml
-<select id="findAll" resultType="com.tanhong.pojo.User">
-    select id, username, name, age
-    from user
-    order by id
-</select>
-```
+- `pageNum <= 0` 查询第一页。
+- `pageNum` 超过总页数时查询最后一页。
 
-Service：
+> [!note] 自动修正不是必须
+> 它适合学习项目，但也可能掩盖前端参数错误。正式接口也可以关闭它，并通过校验返回 `400 Bad Request`。
 
-```java
-public PageInfo<User> findPage(int pageNum, int pageSize) {
-    PageHelper.startPage(pageNum, pageSize);
-    List<User> users = userMapper.findAll();
-    return new PageInfo<>(users);
-}
-```
+> [!danger] 不要叠加不同版本
+> Starter 已包含传递依赖。发生冲突时用 `mvn dependency:tree` 检查，不要不断添加其他版本尝试。
 
-调用顺序非常重要：
+---
 
-```text
-PageHelper.startPage(...)
-紧接着执行 Mapper 查询
-```
-
-## 6. PageHelper 内部做了什么
+## 3. PageHelper 怎样工作
 
 ```mermaid
 flowchart TD
-    A["调用 startPage"] --> B["把分页参数保存到当前线程"]
-    B --> C["执行下一个 MyBatis 查询"]
-    C --> D["PageInterceptor 拦截查询"]
-    D --> E["执行 count 查询得到总数"]
-    E --> F["根据 MySQL 方言改写分页 SQL"]
-    F --> G["执行带 limit/offset 的 SQL"]
-    G --> H["返回 Page/List 结果"]
-    H --> I["PageInfo 整理分页信息"]
-    I --> J["清理当前线程的分页参数"]
+    A["PageHelper.startPage"] --> B["把分页参数放入当前线程"]
+    B --> C["执行下一条MyBatis查询"]
+    C --> D["PageInterceptor拦截"]
+    D --> E["默认执行count查询"]
+    E --> F["按MySQL方言增加limit/offset"]
+    F --> G["返回当前页并清理线程参数"]
 ```
 
-核心理解：
+核心结论：
 
-1. `startPage` 本身不查询数据库。
-2. 它先把页码和每页条数保存到 `ThreadLocal`。
-3. MyBatis 执行下一条查询时，`PageInterceptor` 进行拦截。
-4. 插件通常先查询总数，再改写原 SQL。
-5. MySQL 分页 SQL最终包含 `limit` 和 `offset`。
-6. 查询结束后插件清理线程中的分页状态。
+1. `startPage` 本身不访问数据库。
+2. PageHelper 默认只影响紧随其后的 MyBatis 查询。
+3. 它是数据库物理分页，不是查询全部后调用 `subList()`。
+4. 默认执行 `count`；不需要总数时可使用 `startPage(pageNum, pageSize, false)`，但此时没有准确 `total/pages`。
 
-因此 PageHelper 是数据库物理分页，不是先查出全部数据再用 Java 截取。
+分页参数临时放在 `ThreadLocal` 中。插件在正常进入查询后会在 `finally` 清理；如果设置参数后根本没执行 Mapper 查询，参数可能残留并影响复用该线程的后续请求。
 
-## 7. `PageInfo` 中常用字段
+ThreadLocal 的完整原理见 [[9、Spring AOP、操作日志与ThreadLocal]]。
+
+---
+
+## 4. 当前员工分页写法
+
+Mapper 保持普通动态查询，并在 SQL 末尾稳定排序：
 
 ```java
-PageInfo<User> pageInfo = new PageInfo<>(users);
+List<Emp> list(EmpQueryParam queryParam);
 ```
 
-常见字段：
+Service 负责开启分页：
+
+```java
+public PageResult<Emp> page(EmpQueryParam queryParam) {
+    PageHelper.startPage(queryParam.getPageNum(), queryParam.getPageSize());
+
+    // startPage后必须紧跟真正需要分页的MyBatis查询
+    List<Emp> empList = empMapper.list(queryParam);
+
+    // 直接使用Mapper返回的原始分页List
+    PageInfo<Emp> pageInfo = new PageInfo<>(empList);
+
+    return new PageResult<>(pageInfo.getTotal(), pageInfo.getList());
+}
+```
+
+当前返回模型：
+
+```java
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class PageResult<T> {
+    private Long total;
+    private List<T> list;
+}
+```
+
+> [!important] 泛型不要省略
+> 写 `new PageResult<>(...)`，不要写原始类型 `new PageResult(...)`。
+
+---
+
+## 5. `PageInfo` 与原始分页 List
+
+```java
+PageInfo<Emp> pageInfo = new PageInfo<>(empList);
+```
+
+常用信息：
 
 | 字段 | 含义 |
 |---|---|
 | `list` | 当前页数据 |
-| `pageNum` | 当前页码 |
-| `pageSize` | 每页条数 |
+| `pageNum/pageSize` | 当前页与每页条数 |
 | `total` | 总记录数 |
 | `pages` | 总页数 |
-| `hasPreviousPage` | 是否有上一页 |
-| `hasNextPage` | 是否有下一页 |
+| `hasPreviousPage/hasNextPage` | 是否有前后页 |
 
-典型 JSON：
+> [!danger] 不要先复制或转换 List
+> Mapper 返回值声明为 `List<Emp>`，实际通常是保存分页元数据的 `Page<Emp>`。若先 `stream().toList()` 或复制成 `ArrayList`，再构造 `PageInfo`，`total` 可能退化为当前页条数。应先构造 `PageInfo`，再转换 `pageInfo.getList()`。
 
-```json
-{
-  "pageNum": 2,
-  "pageSize": 3,
-  "total": 10,
-  "pages": 4,
-  "list": [
-    {"id": 4, "username": "user4", "name": "用户4", "age": 20}
-  ]
-}
-```
+---
 
-正式接口可以只返回前端需要的分页字段，避免直接暴露 PageHelper 的全部内部字段。
-
-## 8. Controller 示例
+## 6. Controller 参数
 
 ```java
 @GetMapping("/api/users")
-public PageInfo<User> findPage(
+public PageResult<User> findPage(
         @RequestParam(defaultValue = "1") int pageNum,
         @RequestParam(defaultValue = "10") int pageSize) {
     return userService.findPage(pageNum, pageSize);
 }
 ```
 
-建议限制参数范围：
+至少保证：
 
-```java
-pageNum = Math.max(pageNum, 1);
-pageSize = Math.min(Math.max(pageSize, 1), 100);
+```text
+pageNum >= 1
+1 <= pageSize <= 100
 ```
 
-限制 `pageSize` 可以防止客户端传入极大数字，导致一次查询过多数据。
+限制 `pageSize` 可以防止客户端一次请求过多数据。当前员工项目把页码、条数和查询条件封装在 `EmpQueryParam` 中，由 Spring 自动绑定查询参数。
 
-## 9. 更安全的调用方式
+> [!warning] 当前源码现状
+> `EmpQueryParam` 目前只有默认值，尚未真正限制 `pageSize`。`reasonable: true` 只修正页码，不能阻止超大页容量；正式使用前应在 Controller/DTO 用 `@Min/@Max` 校验，或在 Service 主动拒绝非法参数。
 
-如果 `startPage` 后面的查询可能因为条件判断而不执行，分页参数可能影响同一线程后续查询。可以使用回调式 API，让分页范围更明确：
+---
 
-```java
-public PageInfo<User> findPage(int pageNum, int pageSize) {
-    return PageHelper
-            .startPage(pageNum, pageSize)
-            .doSelectPageInfo(userMapper::findAll);
-}
-```
+## 7. 安全调用与常见错误
 
-这段代码明确表示：只对 `userMapper.findAll()` 进行分页。
-
-## 10. 常见错误
-
-### 错误一：`startPage` 后先执行了其他查询
+如果存在“某个分支根本不执行查询”的情况，可以把分页范围写得更明确：
 
 ```java
-PageHelper.startPage(1, 10);
-userMapper.countEnabled(); // 被分页的是这一条
-userMapper.findAll();      // 这一条可能不再分页
+return PageHelper
+        .startPage(pageNum, pageSize)
+        .doSelectPageInfo(() -> userMapper.findAll());
 ```
 
-PageHelper 默认只影响紧随其后的第一条 MyBatis 查询。
+常见错误速查：
 
-### 错误二：先查询再调用 `startPage`
+| 错误 | 结果/修正 |
+|---|---|
+| `startPage` 后先执行其他 Mapper 查询 | 其他查询被分页；目标查询不再分页 |
+| 查询后才调用 `startPage` | 调用太晚，不会影响已经完成的查询 |
+| SQL 没有 `order by` | 页间顺序不稳定 |
+| 对结果再次 `subList()` | 重复分页，删除这一步 |
+| 复杂联表直接 count | count 可能很慢或因一对多 JOIN 放大，需要检查生成 SQL |
+| `limit 20 offset 100000` | 大偏移仍需跳过大量记录，可考虑游标分页 |
 
-```java
-List<User> users = userMapper.findAll();
-PageHelper.startPage(1, 10); // 已经晚了
-```
+> [!danger] 一对多 JOIN 不宜直接分页父对象
+> `limit` 在 MyBatis 用 `resultMap` 合并父子对象之前生效，可能出现一页员工不足或子集合被截断。常见方案是先分页查询员工主键/主表，再按这些 ID 查询工作经历并组装。
 
-### 错误三：没有 `order by`
-
-翻页顺序可能不稳定。
-
-### 错误四：在 Java 中对分页结果再次截取
-
-PageHelper 已经完成数据库分页，不需要再用 `subList()`。
-
-### 错误五：忽略 `count` 的成本
-
-复杂联表查询的 `count(*)` 也可能很慢。若页面不需要总条数，可以考虑不查询总数，或设计“是否还有下一页”的返回方式。
-
-### 错误六：大页码仍然很慢
+游标分页示例：
 
 ```sql
-limit 20 offset 100000
-```
-
-数据库仍需跳过大量记录。数据量很大时，可使用基于主键的游标分页：
-
-```sql
-select id, username, name, age
+select id, username, name
 from user
 where id > #{lastId}
 order by id
 limit #{pageSize}
 ```
 
-## 11. PageHelper 与三层架构
+---
 
-| 层 | 分页职责 |
+## 8. 多模块职责
+
+| 模块 | 分页相关内容 |
 |---|---|
-| Controller | 接收 `pageNum`、`pageSize`，限制参数范围 |
-| Service | 开启 PageHelper，组织分页业务 |
-| Mapper | 编写正常查询 SQL 和稳定排序 |
-| PageHelper | 拦截并改写 SQL |
-| 数据库 | 执行 `count` 和分页 SQL |
+| `employee-model` | `PageResult<T>`、`EmpQueryParam` |
+| `employee-dao` | `EmpMapper.list()`、动态 SQL、`order by` |
+| `employee-service` | `PageHelper`、`PageInfo` 调用 |
+| `employee-web` | Controller、Starter 和自动配置 |
 
-`PageHelper.startPage()` 通常放在 Service，而不是 Controller 或 Mapper XML 中。
+```text
+employee-web → employee-service → employee-dao → employee-model
+```
 
-## 12. 一句话总结
+Service 编译时调用 Core API，Web 运行时负责创建数据源、MyBatis 环境和分页拦截器。
 
-> 分页通过 `limit + offset` 只查询当前页；PageHelper 使用拦截器改写下一条 MyBatis 查询，并用 `PageInfo` 封装总数和页码等信息。使用时必须让 `startPage` 紧挨 Mapper 查询，并保证 SQL 有稳定的 `order by`。
+---
+
+## 9. 一句话总结
+
+> PageHelper 把当前线程中的分页参数应用到下一条 MyBatis 查询，默认生成 count 和分页 SQL；使用时要紧跟 Mapper 查询、稳定排序，并用原始分页 List 创建 `PageInfo`，再转换成项目自己的 `PageResult<T>`。
 
 ## 参考资料
 
@@ -304,3 +277,5 @@ limit #{pageSize}
 
 - [[0、SpringBoot笔记目录与学习路线|返回笔记目录]]
 - [[5、Web接口工程化基础：DTO、校验、异常与跨域|上一篇：Web 接口工程化基础]]
+- [[7、Spring事务与传播行为|下一篇：Spring 事务与传播行为]]
+- [[9、Spring AOP、操作日志与ThreadLocal|延伸：ThreadLocal]]
