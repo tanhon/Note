@@ -1,6 +1,22 @@
 {
   "recentFiles": [
     {
+      "basename": "00-完整开发路线",
+      "path": "Create/RentFlow/00-完整开发路线.md"
+    },
+    {
+      "basename": "整个过程怎么边练边学",
+      "path": "Create/RentFlow/整个过程怎么边练边学.md"
+    },
+    {
+      "basename": "问题记录",
+      "path": "Create/RentFlow/问题记录.md"
+    },
+    {
+      "basename": "Create模板",
+      "path": "template/Create模板.md"
+    },
+    {
       "basename": "0、SpringBoot笔记目录与学习路线",
       "path": "Create/SpringBoot/0、SpringBoot笔记目录与学习路线.md"
     },
@@ -183,22 +199,6 @@
     {
       "basename": "0、集合 + 位运算",
       "path": "算法笔记/算法知识/0、集合 + 位运算.md"
-    },
-    {
-      "basename": "Day18",
-      "path": "Diary/2026-04/Day18.md"
-    },
-    {
-      "basename": "Day17",
-      "path": "Diary/2026-04/Day17.md"
-    },
-    {
-      "basename": "Day16",
-      "path": "Diary/2026-04/Day16.md"
-    },
-    {
-      "basename": "Day15",
-      "path": "Diary/2026-04/Day15.md"
     }
   ],
   "omittedPaths": [],
