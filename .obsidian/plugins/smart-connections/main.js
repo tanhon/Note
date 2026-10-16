@@ -1,4 +1,4 @@
-/*! smart-connections-obsidian v4.7.0 | (c) 2026 🌴 Brian (Brian Petro) */
+/*! smart-connections-obsidian v4.7.2 | (c) 2026 🌴 Brian (Brian Petro) */
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -914,8 +914,7 @@ var SmartEnv = class {
   /**
    * Waits for either a specific main to be registered in the environment,
    * or (if `opts.main` is not specified) waits for environment collections to load.
-   * @param {object} opts
-   * @param {object} [opts.main] - if set, the function waits until that main is found.
+   * @param {{main?: string, loaded?: boolean}} [opts]
    * @returns {Promise<SmartEnv>} Resolves with the environment instance
    */
   static wait_for(opts = {}) {
@@ -4095,7 +4094,7 @@ var CollectionItem = class _CollectionItem {
   /**
    * @this {CollectionItemThis}
    * @param {Object.<string, *>} [params={}]
-   * @returns {CollectionScoreResult|null}
+   * @returns {CollectionScoreResult|CollectionScoreResult[]|null}
    */
   filter_and_score(params = {}) {
     if (this.filter(params.filter) === false) return null;
@@ -15983,6 +15982,13 @@ var EmbeddingModel = class extends Model {
 // node_modules/obsidian-smart-env/node_modules/smart-models/collections/embedding_models.js
 var EmbeddingModels = class extends Models {
   model_type = "Embedding";
+  new_model(data = {}) {
+    if (data.model_key === void 0) {
+      const provider_adapter_class = this.env_config.providers?.[data.provider_key]?.class;
+      data.model_key = provider_adapter_class?.defaults?.default_model || "";
+    }
+    return super.new_model(data);
+  }
   get default_provider_key() {
     return "transformers";
   }
@@ -30525,7 +30531,7 @@ var smart_env_config = {
     embedding_model: { class: EmbeddingModel, version: "1.0.3" },
     lookup_list: { class: LookupList, version: "1.0.3" },
     smart_block: { class: SmartBlock2, version: 2 },
-    smart_context: { class: SmartContext2, version: "2.1.0" },
+    smart_context: { class: SmartContext2, version: "2.1.1" },
     smart_source: { class: SmartSource2, version: 2 }
   },
   modules: {
@@ -31952,7 +31958,7 @@ var package_default2 = {
   name: "obsidian-smart-env",
   author: "Brian Joseph Petro (\u{1F334} Brian)",
   license: "SEE LICENSE IN LICENSE",
-  version: "3.1.0",
+  version: "3.1.1",
   type: "module",
   description: "Implements Smart Environment best practices for Obsidian.",
   main: "index.js",
@@ -31988,7 +31994,6 @@ var package_default2 = {
     "smart-view": "file:../jsbrains/smart-view"
   },
   devDependencies: {
-    "@xenova/transformers": "latest",
     ava: "^6.3.0",
     dotenv: "^17.2.3",
     eslint: "^9.39.4",
@@ -33400,6 +33405,8 @@ function is_object4(value) {
 // node_modules/obsidian-smart-env/smart_plugin.js
 var SmartPlugin = class extends import_obsidian52.Plugin {
   SmartEnv = SmartEnv2;
+  /** @type {TEnv} Set by `SmartEnv.create_env_getter`. */
+  env;
   /**
    * override in subclass to provide commands.
    * use property key to override commands in further subclasses.
@@ -33495,6 +33502,7 @@ var SmartPlugin = class extends import_obsidian52.Plugin {
   }
   /**
    * @deprecated use SmartEnv.notices instead
+   * @returns {{unload: () => void}}
    */
   get notices() {
     if (this.env?.notices) return this.env.notices;
@@ -34118,7 +34126,7 @@ var CollectionItem2 = class _CollectionItem {
   /**
    * @this {CollectionItemThis}
    * @param {Object.<string, *>} [params={}]
-   * @returns {CollectionScoreResult|null}
+   * @returns {CollectionScoreResult|CollectionScoreResult[]|null}
    */
   filter_and_score(params = {}) {
     if (this.filter(params.filter) === false) return null;
@@ -35183,13 +35191,6 @@ var ConnectionsLists = class extends Collection2 {
     return parse_frontmatter_filter_lines(this.settings.frontmatter_filter_exclude);
   }
   get connections_list_component_settings_config() {
-    if (!this.settings?.connections_list_component_key || !this.env.is_pro && ["none", "connections_list_v4_2", "connections_list_v3"].includes(this.settings.connections_list_component_key)) {
-      this.settings.connections_list_component_key = "connections_list_v4";
-    }
-    if (!this.settings?.components?.connections_list_v4) {
-      if (!this.settings.components) this.settings.components = {};
-      this.settings.components.connections_list_v4 = { ...this.constructor.default_settings.components.connections_list_v4 };
-    }
     const component_key = this.settings.connections_list_component_key;
     if (!component_key || component_key === "none") return null;
     const component_module = this.env.config.components?.[component_key];
@@ -35241,6 +35242,15 @@ function settings_config10(scope) {
           { value: "right", name: "Right sidebar" },
           { value: "left", name: "Left sidebar" }
         ];
+      }
+    },
+    "connections_list_component_key": {
+      group: "Display",
+      name: "Connections List Component",
+      type: "dropdown",
+      description: "Select the component used to render the connections list.",
+      options_callback: (scope2) => {
+        return scope2.get_connections_list_component_options();
       }
     },
     "inline_connections": {
@@ -35622,13 +35632,11 @@ var connections_footer_view_default = ".sc-connections-footer-hidden {\n  displa
 // src/components/connections_footer_view.js
 var FOOTER_FOLDED_STORAGE_KEY = "sc_footer_connections_folded";
 var FOOTER_LIST_COLLAPSED_CLASS = "sc-footer-list-collapsed";
-function get_footer_connections_folded() {
-  if (typeof localStorage === "undefined") return false;
-  return localStorage.getItem(FOOTER_FOLDED_STORAGE_KEY) === "true";
+function get_footer_connections_folded(app2) {
+  return app2.loadLocalStorage(FOOTER_FOLDED_STORAGE_KEY) === "true";
 }
-function set_footer_connections_folded(folded) {
-  if (typeof localStorage === "undefined") return;
-  localStorage.setItem(FOOTER_FOLDED_STORAGE_KEY, String(folded));
+function set_footer_connections_folded(app2, folded) {
+  app2.saveLocalStorage(FOOTER_FOLDED_STORAGE_KEY, String(folded));
 }
 function apply_footer_fold_state(header_container, list_container, folded) {
   if (!header_container || !list_container) return;
@@ -35679,11 +35687,11 @@ async function post_process26(view, container, opts = {}) {
   header_container?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    const next_folded = !get_footer_connections_folded();
-    set_footer_connections_folded(next_folded);
+    const next_folded = !get_footer_connections_folded(view.app);
+    set_footer_connections_folded(view.app, next_folded);
     apply_footer_fold_state(header_container, list_container, next_folded);
   });
-  apply_footer_fold_state(header_container, list_container, get_footer_connections_folded());
+  apply_footer_fold_state(header_container, list_container, get_footer_connections_folded(view.app));
   if (!connections_item) {
     return container;
   }
@@ -36068,12 +36076,8 @@ function parse_prefixed_key(prefixed_key) {
   if (!collection_key || !rest.length) return null;
   return { collection_key, item_key: rest.join(":") };
 }
-var D3_CDN_URL = "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 var D3_EXPECTED_MAJOR = "7.";
 var d3_import_promise = null;
-function get_d3_cdn_url() {
-  return D3_CDN_URL;
-}
 function validate_d3_instance(d3) {
   if (!d3) return;
   const version4 = String(d3.version || "");
@@ -36084,14 +36088,13 @@ function validate_d3_instance(d3) {
   }
 }
 async function load_d3() {
-  const g = typeof activeWindow !== "undefined" ? activeWindow : typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : {};
+  const g = typeof activeWindow !== "undefined" ? activeWindow : typeof window !== "undefined" ? window : {};
   if (g.d3) {
     validate_d3_instance(g.d3);
     return g.d3;
   }
   if (!d3_import_promise) {
-    const d3_cdn_url = get_d3_cdn_url();
-    d3_import_promise = import(d3_cdn_url).then((d3) => {
+    d3_import_promise = import("https://cdn.jsdelivr.net/npm/d3@7/+esm").then((d3) => {
       validate_d3_instance(d3);
       if (!g.d3) g.d3 = d3;
       return d3;
@@ -36337,8 +36340,7 @@ async function post_process27(connections_list, container, params = {}) {
           node_sel.attr("transform", (d) => `translate(${d.x},${d.y})`);
           node_sel.select("text.sc-node-label").each(function(d) {
             if (d.isCenter) return;
-            const node = this;
-            const label_width = typeof node.getComputedTextLength === "function" ? node.getComputedTextLength() : 0;
+            const label_width = typeof this.getComputedTextLength === "function" ? this.getComputedTextLength() : 0;
             const { anchor, offset } = label_anchor_offset(d.x, {
               center_x,
               label_width,
@@ -36346,7 +36348,7 @@ async function post_process27(connections_list, container, params = {}) {
               radius: d.radius,
               margin: LABEL_MARGIN
             });
-            d3.select(node).attr("text-anchor", anchor).attr("x", offset);
+            d3.select(this).attr("text-anchor", anchor).attr("x", offset);
           });
         });
       } else {
@@ -36572,7 +36574,7 @@ function process_for_rendering(content) {
   if (content.includes("```dataview")) content = content.replace(/```dataview/g, "```\\dataview");
   if (content.includes("```smart-context")) content = content.replace(/```smart-context/g, "```\\smart-context");
   if (content.includes("```smart-chatgpt")) content = content.replace(/```smart-chatgpt/g, "```\\smart-chatgpt");
-  if (content.includes("![[")) content = content.replace(/\!\[\[/g, "! [[");
+  if (content.includes("![[")) content = content.replace(/!\[\[/g, "! [[");
   return content;
 }
 function toggle_result(event) {
@@ -37593,7 +37595,7 @@ function format_connection_item(item) {
   if (!link) return "";
   const lines = get_lines_label(item);
   if (!lines) return link;
-  return `${link.replace(/\#\{\d+\}/, "")} (${lines})`;
+  return `${link.replace(/#\{\d+\}/, "")} (${lines})`;
 }
 function get_lines_label(item) {
   if (!item?.key?.endsWith("}")) return "";
@@ -37993,7 +37995,7 @@ async function connections_list_open_random_connection(params = {}) {
   return true;
 }
 function get_app(env, params = {}) {
-  return params.app || params.plugin?.app || env?.obsidian_app || env?.plugin?.app || globalThis.app || null;
+  return params.app || params.plugin?.app || env?.obsidian_app || env?.plugin?.app || activeWindow.app || null;
 }
 function resolve_file_path(scope, params = {}, app2 = null) {
   const key = params.file_path || params.target_item?.key || params.source_item?.key || scope?.item?.key || "";
@@ -38251,7 +38253,7 @@ function connections_list_send_to_context(params = {}) {
     );
     return true;
   }
-  const open_url = globalThis.activeWindow?.open || globalThis.window?.open || globalThis.open;
+  const open_url = activeWindow?.open || window?.open || open;
   if (typeof open_url !== "function") return false;
   open_url(SMART_CONTEXT_URL, "_external");
   return true;
@@ -38775,7 +38777,7 @@ var register_env_event_listener = (view, event_key, callback) => {
 async function source_view_connections(params = {}) {
   const source_item = params.source_item || params.target_item || this;
   const env = source_item?.env || this?.env;
-  const workspace = params.workspace || env?.obsidian_app?.workspace || env?.plugin?.app?.workspace || env?.smart_connections_plugin?.app?.workspace || globalThis.app?.workspace;
+  const workspace = params.workspace || env?.obsidian_app?.workspace || env?.plugin?.app?.workspace || env?.smart_connections_plugin?.app?.workspace || activeWindow.app?.workspace;
   if (!source_item?.key || !workspace) return false;
   const event_source = params.event_source || "source_view_connections";
   const view = await get_or_open_connections_view(workspace);
@@ -38850,43 +38852,43 @@ var smart_env_config3 = {
     connections_lists: connections_lists_default
   },
   items: {
-    connections_list: { class: ConnectionsList, version: "3.1.0" }
+    connections_list: { class: ConnectionsList, version: "3.1.1" }
   },
   modules: {},
   components: {
-    connections_codeblock: { render: render28, version: "3.1.0" },
-    connections_footer_view: { render: render29, version: "3.1.0" },
-    connections_graph_v1: { render: render30, version: "3.1.0" },
-    connections_list_item_v3: { render: render31, settings_config: settings_config11, version: "3.1.0" },
-    connections_list_v3: { render: render32, display_name: display_name10, version: "3.1.0" },
-    connections_list_v4: { render: render33, settings_config: settings_config12, display_name: display_name11, version: "3.1.0" },
-    connections_settings_header: { render: render34, version: "3.1.0" },
-    connections_settings_lookup_callout: { render: render35, version: "3.1.0" },
-    connections_view_v3: { render: render36, version: "3.1.0" }
+    connections_codeblock: { render: render28, version: "3.1.1" },
+    connections_footer_view: { render: render29, version: "3.1.1" },
+    connections_graph_v1: { render: render30, version: "3.1.1" },
+    connections_list_item_v3: { render: render31, settings_config: settings_config11, version: "3.1.1" },
+    connections_list_v3: { render: render32, display_name: display_name10, version: "3.1.1" },
+    connections_list_v4: { render: render33, settings_config: settings_config12, display_name: display_name11, version: "3.1.1" },
+    connections_settings_header: { render: render34, version: "3.1.1" },
+    connections_settings_lookup_callout: { render: render35, version: "3.1.1" },
+    connections_view_v3: { render: render36, version: "3.1.1" }
   },
   actions: {
-    connections_list_copy_as_links: { action: connections_list_copy_as_links, menus: menus18, version: "3.1.0" },
-    connections_list_get_results: { action: connections_list_get_results, display_name: display_name12, display_description: display_description6, action_scope: action_scope3, tool: tool2, input_schema: input_schema2, output_schema: output_schema2, version: "3.1.0" },
-    connections_list_item_hide: { action: connections_list_item_hide, menus: menus19, version: "3.1.0" },
-    connections_list_item_toggle_pinned: { action: connections_list_item_toggle_pinned, menus: menus20, version: "3.1.0" },
-    connections_list_open_help: { action: connections_list_open_help, commands: commands4, menus: menus21, version: "3.1.0" },
-    connections_list_open_random_connection: { action: connections_list_open_random_connection, commands: commands5, ribbon_icons, menus: menus22, version: "3.1.0" },
-    connections_list_open_settings: { action: connections_list_open_settings, menus: menus23, version: "3.1.0" },
-    connections_list_open_view: { action: connections_list_open_view, commands: commands6, ribbon_icons: ribbon_icons2, version: "3.1.0" },
-    connections_list_pre_process: { action: pre_process2, pre_process: pre_process2, version: "3.1.0" },
-    connections_list_refresh: { action: connections_list_refresh, menus: menus24, version: "3.1.0" },
-    connections_list_select_target: { action: connections_list_select_target, display_name: display_name13, menus: menus25, version: "3.1.0" },
+    connections_list_copy_as_links: { action: connections_list_copy_as_links, menus: menus18, version: "3.1.1" },
+    connections_list_get_results: { action: connections_list_get_results, display_name: display_name12, display_description: display_description6, action_scope: action_scope3, tool: tool2, input_schema: input_schema2, output_schema: output_schema2, version: "3.1.1" },
+    connections_list_item_hide: { action: connections_list_item_hide, menus: menus19, version: "3.1.1" },
+    connections_list_item_toggle_pinned: { action: connections_list_item_toggle_pinned, menus: menus20, version: "3.1.1" },
+    connections_list_open_help: { action: connections_list_open_help, commands: commands4, menus: menus21, version: "3.1.1" },
+    connections_list_open_random_connection: { action: connections_list_open_random_connection, commands: commands5, ribbon_icons, menus: menus22, version: "3.1.1" },
+    connections_list_open_settings: { action: connections_list_open_settings, menus: menus23, version: "3.1.1" },
+    connections_list_open_view: { action: connections_list_open_view, commands: commands6, ribbon_icons: ribbon_icons2, version: "3.1.1" },
+    connections_list_pre_process: { action: pre_process2, pre_process: pre_process2, version: "3.1.1" },
+    connections_list_refresh: { action: connections_list_refresh, menus: menus24, version: "3.1.1" },
+    connections_list_select_target: { action: connections_list_select_target, display_name: display_name13, menus: menus25, version: "3.1.1" },
     connections_list_send_to_context: { action: connections_list_send_to_context, menus: menus26, version: version2 },
     connections_list_send_to_smart_graph: { action: connections_list_send_to_smart_graph, menus: menus27, version: version3 },
-    connections_list_toggle_expanded: { action: connections_list_toggle_expanded, menus: menus28, version: "3.1.0" },
-    connections_list_toggle_footer_connections: { action: connections_list_toggle_footer_connections, commands: commands7, ribbon_icons: ribbon_icons3, version: "3.1.0" },
-    connections_list_toggle_paused: { action: connections_list_toggle_paused, menus: menus29, version: "3.1.0" },
-    connections_list_unhide_all: { action: connections_list_unhide_all, menus: menus30, version: "3.1.0" },
-    connections_list_unpin_all: { action: connections_list_unpin_all, menus: menus31, version: "3.1.0" },
-    connections_target_blocks: { action: connections_target_blocks, menus: menus32, version: "3.1.0" },
-    connections_target_history: { action: connections_target_history, menus: menus33, version: "3.1.0" },
-    env_insert_connections_codeblock: { action: env_insert_connections_codeblock, commands: commands8, version: "3.1.0" },
-    source_view_connections: { action: source_view_connections, menus: menus34, version: "3.1.0" }
+    connections_list_toggle_expanded: { action: connections_list_toggle_expanded, menus: menus28, version: "3.1.1" },
+    connections_list_toggle_footer_connections: { action: connections_list_toggle_footer_connections, commands: commands7, ribbon_icons: ribbon_icons3, version: "3.1.1" },
+    connections_list_toggle_paused: { action: connections_list_toggle_paused, menus: menus29, version: "3.1.1" },
+    connections_list_unhide_all: { action: connections_list_unhide_all, menus: menus30, version: "3.1.1" },
+    connections_list_unpin_all: { action: connections_list_unpin_all, menus: menus31, version: "3.1.1" },
+    connections_target_blocks: { action: connections_target_blocks, menus: menus32, version: "3.1.1" },
+    connections_target_history: { action: connections_target_history, menus: menus33, version: "3.1.1" },
+    env_insert_connections_codeblock: { action: env_insert_connections_codeblock, commands: commands8, version: "3.1.1" },
+    source_view_connections: { action: source_view_connections, menus: menus34, version: "3.1.1" }
   }
 };
 
@@ -39087,7 +39089,7 @@ function heading_matches_version({ matcher, heading_text }) {
 }
 
 // releases/latest_release.md
-var latest_release_default = "# Smart Connections Core v4.7\n\n## Related notes show up sooner. Change the anchor in place.\n\nSmart Connections still starts from the note in front of you. v4.7 removes the detour when another source should take over: choose a recent note, focus on one block, or drop a vault file onto Connections and let the list update in place.\n\nThe larger upgrade is underneath the list. Smart Environment v3 gets Connections ready sooner, adds more built-in local embedding models, and lets you switch models without restarting Obsidian or deleting the embeddings you may want to return to.\n\n![](https://smartconnections.app/assets/connections-target-menu-history-populated-core-crop-desktop-2026-07-30.png)\n\n> Update all installed Smart Plugins together, then restart Obsidian. Smart Connections Core v4.7 requires Smart Environment v3.\n\n## A stronger semantic engine before the first result\n\nConnections depends on the embedding model that turns your notes into semantic signals. v3 makes that choice less permanent and more useful:\n\n- Start using Connections sooner after opening Obsidian.\n- Choose from a broader built-in catalog, including more lightweight and multilingual local models.\n- Change the active model without deleting another model's stored embeddings.\n- Use the improved Environment Stats and source inspector when a note appears stale, skipped, or unexpectedly absent from results.\n\n![](https://smartconnections.app/assets/environment-settings-model-and-embedding-controls-embedding-chat-models-focused-crop-publication-srgb-2982b4f688a4-2026-07-29.png)\n\nLearn more about the release of [Smart Environment v3](https://smartconnections.app/smart-environment/releases/3-0/?utm_source=smart-connections-release).\n\n## Change the target without changing your workspace\n\nThe active note remains the calm default. When it is not the source you want, the target menu now gives you three direct alternatives:\n\n- Pick a recent Connections target.\n- Focus on a specific block inside the current note.\n- Drop another vault file onto the Connections view.\n\nThe related-note list updates around that source without making you navigate away first.\n\n![](https://smartconnections.app/assets/connections-target-menu-blocks-populated-core-crop-desktop-2026-07-27.png)\n\n## Keep a useful result set moving\n\nThe list menu now follows the same shared action system used across Smart Environment v3. Pause or refresh discovery, open a random connection, copy the list, or continue with the reviewed sources in Context or Graph without rebuilding the set by hand.\n\nSource menus elsewhere in the suite can also open Connections for the item you are already looking at. The workflow begins from the source, not from hunting down the right plugin command.\n\n![](https://smartconnections.app/assets/connections-list-menu-core-crop-desktop-2026-07-27.png)\n\n## Put Connections where it helps\n\nFooter Connections now uses a configurable display component instead of a single graph on/off switch. Choose the supported presentation that fits the note surface and screen size. Scores also follow the final displayed ranking score when another ranking step provides one, so the number beside a result better matches the order you see.\n\n![](https://smartconnections.app/assets/connections-settings-display-controls-display-components-focused-crop-publication-srgb-78a34afa1fca-2026-07-29.png)\n\n\n## Before / After\n\n| Before | With Smart Connections Core v4.7 |\n| --- | --- |\n| Connections could take longer to become ready after startup. | Smart Environment v3 reduces blocking and repeated startup work. |\n| Trying another embedding model felt like committing to a rebuild. | Switch models without deleting the previous model's stored embeddings. |\n| Retargeting often meant navigating to another note first. | Choose a recent note, a current-note block, or drop a file onto the view. |\n| A useful result list could become a dead end. | Continue the reviewed sources through consistent Context and Graph actions. |\n| Footer display was controlled by one graph toggle. | Choose the supported Connections component that fits the surface. |\n\n## Supporting improvements\n\n- More consistent list, result, command, ribbon, pause, and random-connection actions.\n- A shared source action for opening Connections from supported Smart Plugin menus.\n- Better score display after optional ranking.\n- Improved vector compatibility and performance reporting through Smart Environment v3.\n\n## Learn more\n\n- [Smart Connections overview](https://smartconnections.app/smart-connections/?utm_source=smart-connections-release)\n- [Smart Connections documentation](https://smartconnections.app/docs/connections/?utm_source=smart-connections-release)\n- [Smart Connections getting started](https://smartconnections.app/smart-connections/getting-started/?utm_source=smart-connections-release)\n- [Smart Connections FAQ](https://smartconnections.app/smart-connections/faq/?utm_source=smart-connections-release)\n\n## Additional notes\n\nimproved: score handling uses score_display if available\n\n\nimproved: allow configurable component for connections footer\n\n\nimproved: enhance score calculation logic and update is_vec function to support ArrayBuffer views\n\n\nimproved: Connections list menu now handled using Smart Environment menu actions pattern to enable deeper integration and extendability\n\n\nimproved: Connections list item menu now handled using Smart Environment menu actions pattern to enable deeper integration and extendability\n\n\nAdded: control connections anchor/target note from menu actions. Select new target from recent connections history and blocks inside the current note.\n\n\nImproved: random and pause connections features migrated to actions pattern.\nAdded: view connections action for source menus.\n\n\nmigrated: ribbon icons to actions architecture\n\n\nMigrated commands to actions command architecture\n\n\nAdded: drag-and-drop functionality for connections to update connections target from dropped file\n\n\nEnhance performance logging in get_results method and emit event with elapsed time\n\n\nAdd footer connections list component configuration and remove show_graph setting in favor of component selection in settings\n\n\nUpdated: Smart Environment v3\n\nUpdated: 2026-08-04\n\n[More details about the latest releases](https://smartconnections.app/smart-connections/releases/4-7/?utm_source=smart-connections-release)\n";
+var latest_release_default = "# Smart Connections Core v4.7\n\n> [!NOTE] What's new in `v4.7.2`\n> Updated: Smart Environment\n> Updated: minimum Obsidian app version to 1.8.7\n> Added: Connections list display configuration\n\n## Related notes show up sooner. Change the anchor in place.\n\nSmart Connections still starts from the note in front of you. v4.7 removes the detour when another source should take over: choose a recent note, focus on one block, or drop a vault file onto Connections and let the list update in place.\n\nThe larger upgrade is underneath the list. Smart Environment v3 gets Connections ready sooner, adds more built-in local embedding models, and lets you switch models without restarting Obsidian or deleting the embeddings you may want to return to.\n\n![](https://smartconnections.app/assets/connections-target-menu-history-populated-core-crop-desktop-2026-07-30.png)\n\n> Update all installed Smart Plugins together, then restart Obsidian. Smart Connections Core v4.7 requires Smart Environment v3.\n\n## A stronger semantic engine before the first result\n\nConnections depends on the embedding model that turns your notes into semantic signals. v3 makes that choice less permanent and more useful:\n\n- Start using Connections sooner after opening Obsidian.\n- Choose from a broader built-in catalog, including more lightweight and multilingual local models.\n- Change the active model without deleting another model's stored embeddings.\n- Use the improved Environment Stats and source inspector when a note appears stale, skipped, or unexpectedly absent from results.\n\n![](https://smartconnections.app/assets/environment-settings-model-and-embedding-controls-embedding-chat-models-focused-crop-publication-srgb-2982b4f688a4-2026-07-29.png)\n\nLearn more about the release of [Smart Environment v3](https://smartconnections.app/smart-environment/releases/3-0/?utm_source=smart-connections-release).\n\n## Change the target without changing your workspace\n\nThe active note remains the calm default. When it is not the source you want, the target menu now gives you three direct alternatives:\n\n- Pick a recent Connections target.\n- Focus on a specific block inside the current note.\n- Drop another vault file onto the Connections view.\n\nThe related-note list updates around that source without making you navigate away first.\n\n![](https://smartconnections.app/assets/connections-target-menu-blocks-populated-core-crop-desktop-2026-07-27.png)\n\n## Keep a useful result set moving\n\nThe list menu now follows the same shared action system used across Smart Environment v3. Pause or refresh discovery, open a random connection, copy the list, or continue with the reviewed sources in Context or Graph without rebuilding the set by hand.\n\nSource menus elsewhere in the suite can also open Connections for the item you are already looking at. The workflow begins from the source, not from hunting down the right plugin command.\n\n![](https://smartconnections.app/assets/connections-list-menu-core-crop-desktop-2026-07-27.png)\n\n## Put Connections where it helps\n\nFooter Connections now uses a configurable display component instead of a single graph on/off switch. Choose the supported presentation that fits the note surface and screen size. Scores also follow the final displayed ranking score when another ranking step provides one, so the number beside a result better matches the order you see.\n\n![](https://smartconnections.app/assets/connections-settings-display-controls-display-components-focused-crop-publication-srgb-78a34afa1fca-2026-07-29.png)\n\n\n## Before / After\n\n| Before | With Smart Connections Core v4.7 |\n| --- | --- |\n| Connections could take longer to become ready after startup. | Smart Environment v3 reduces blocking and repeated startup work. |\n| Trying another embedding model felt like committing to a rebuild. | Switch models without deleting the previous model's stored embeddings. |\n| Retargeting often meant navigating to another note first. | Choose a recent note, a current-note block, or drop a file onto the view. |\n| A useful result list could become a dead end. | Continue the reviewed sources through consistent Context and Graph actions. |\n| Footer display was controlled by one graph toggle. | Choose the supported Connections component that fits the surface. |\n\n## Supporting improvements\n\n- More consistent list, result, command, ribbon, pause, and random-connection actions.\n- A shared source action for opening Connections from supported Smart Plugin menus.\n- Better score display after optional ranking.\n- Improved vector compatibility and performance reporting through Smart Environment v3.\n\n## Learn more\n\n- [Smart Connections overview](https://smartconnections.app/smart-connections/?utm_source=smart-connections-release)\n- [Smart Connections documentation](https://smartconnections.app/docs/connections/?utm_source=smart-connections-release)\n- [Smart Connections getting started](https://smartconnections.app/smart-connections/getting-started/?utm_source=smart-connections-release)\n- [Smart Connections FAQ](https://smartconnections.app/smart-connections/faq/?utm_source=smart-connections-release)\n\nUpdated: 2026-08-06\n\n[More details about the latest releases](https://smartconnections.app/smart-connections/releases/4-7/?utm_source=smart-connections-release)\n";
 
 // src/views/release_notes_view.js
 var ReleaseNotesView2 = class extends ReleaseNotesView {
@@ -39466,7 +39468,6 @@ var SmartConnectionsPlugin = class extends SmartPlugin {
     this.register_item_views({ skip_command_registration: true });
   }
   onunload() {
-    console.log("Unloading Smart Connections plugin");
     this.connections_footer_view?.unload();
     this.notices?.unload();
     this.env?.unload_main?.(this);
@@ -39545,7 +39546,6 @@ var SmartConnectionsPlugin = class extends SmartPlugin {
   }
   async check_for_updates() {
     if (await this.is_new_plugin_version(this.manifest.version)) {
-      console.log("opening release notes modal");
       try {
         this.ReleaseNotesView.open(this.app.workspace, this.manifest.version);
       } catch (error) {
@@ -39589,12 +39589,10 @@ var SmartConnectionsPlugin = class extends SmartPlugin {
   get_editor_view() {
     const file = this.app.workspace.getActiveFile();
     if (!file) {
-      console.log("Smart Connections: No active file found");
       return null;
     }
     const markdown_view = this.app.workspace.getActiveFileView();
     if (!markdown_view) {
-      console.log("Smart Connections: No active file view found");
       return null;
     }
     return markdown_view.editor?.cm || null;
@@ -39620,7 +39618,6 @@ var SmartConnectionsPlugin = class extends SmartPlugin {
       await this.app.vault.adapter.append(".gitignore", `
 
 ${message ? "# " + message + "\n" : ""}${ignore}`);
-      console.log("Added to .gitignore: " + ignore);
     }
   }
 };
