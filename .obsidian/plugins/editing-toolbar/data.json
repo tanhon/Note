@@ -4,11 +4,6 @@
   "positionStyle": "top",
   "menuCommands": [
     {
-      "id": "editing-toolbar:ai-tools",
-      "name": "AI Tools",
-      "icon": "lucide-sparkles"
-    },
-    {
       "id": "editing-toolbar:editor-undo",
       "name": "Undo Edit",
       "icon": "undo-glyph"
@@ -394,34 +389,10 @@
       "icon": "exit-fullscreen"
     }
   ],
-  "followingCommands": [
-    {
-      "id": "editing-toolbar:ai-tools",
-      "name": "AI Tools",
-      "icon": "lucide-sparkles"
-    }
-  ],
-  "topCommands": [
-    {
-      "id": "editing-toolbar:ai-tools",
-      "name": "AI Tools",
-      "icon": "lucide-sparkles"
-    }
-  ],
-  "fixedCommands": [
-    {
-      "id": "editing-toolbar:ai-tools",
-      "name": "AI Tools",
-      "icon": "lucide-sparkles"
-    }
-  ],
-  "mobileCommands": [
-    {
-      "id": "editing-toolbar:ai-tools",
-      "name": "AI Tools",
-      "icon": "lucide-sparkles"
-    }
-  ],
+  "followingCommands": [],
+  "topCommands": [],
+  "fixedCommands": [],
+  "mobileCommands": [],
   "enableMultipleConfig": false,
   "enableTopToolbar": true,
   "enableFollowingToolbar": false,
@@ -483,7 +454,7 @@
   "toolbarIconSize": 18,
   "useCurrentLineForRegex": false,
   "ai": {
-    "enabled": true,
+    "enabled": false,
     "showAIContextMenu": true,
     "consentAccepted": true,
     "onboardingShown": true,
@@ -505,25 +476,13 @@
       "artifact": "03-agent"
     },
     "pkmer": {
-      "tokenExpiresAt": 1777730367616,
-      "userInfo": {
-        "sub": "abdc6720-80a0-4e34-8218-1d98c577292a",
-        "name": "15631069973",
-        "ai_quota": {
-          "quota": 50000000,
-          "usedQuota": 0,
-          "remainingQuota": 50000000,
-          "remainingTokens": 100,
-          "requestCount": 0
-        },
-        "thino": false,
-        "supporter": false
-      }
+      "tokenExpiresAt": 0,
+      "userInfo": null
     },
-    "enableCustomModel": false,
+    "enableCustomModel": true,
     "customModel": {
       "apiFormat": "openai-compatible",
-      "baseUrl": "",
+      "baseUrl": "https://api.deepseek.com",
       "apiKey": "",
       "model": "",
       "temperature": 0.2

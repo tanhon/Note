@@ -7,12 +7,14 @@
   "searchNestedChoices": true,
   "templateFolderLauncherRow": "bottom",
   "devMode": false,
-  "templateFolderPaths": [],
+  "templateFolderPaths": [
+    "template"
+  ],
   "announceUpdates": "major",
   "version": "2.32.1",
   "globalVariables": {},
   "onePageInputEnabled": false,
-  "disableOnlineFeatures": true,
+  "disableOnlineFeatures": false,
   "enableUriCallbacks": false,
   "enableRibbonIcon": false,
   "showCaptureNotification": true,
@@ -42,10 +44,6 @@
         "apiKey": "",
         "models": [
           {
-            "name": "gpt-3.5-turbo",
-            "maxTokens": 4096
-          },
-          {
             "name": "gpt-3.5-turbo-16k",
             "maxTokens": 16384
           },
@@ -54,77 +52,229 @@
             "maxTokens": 16385
           },
           {
-            "name": "gpt-4",
-            "maxTokens": 8192
-          },
-          {
-            "name": "gpt-4-turbo",
-            "maxTokens": 128000
-          },
-          {
             "name": "gpt-4o",
             "maxTokens": 128000,
             "maxOutputTokens": 16384,
-            "supportsTemperature": true
+            "supportsTemperature": true,
+            "releaseDate": "2024-05-13"
           },
           {
             "name": "gpt-4o-mini",
             "maxTokens": 128000,
             "maxOutputTokens": 16384,
-            "supportsTemperature": true
+            "supportsTemperature": true,
+            "releaseDate": "2024-07-18"
           },
           {
             "name": "gpt-5.5",
             "maxTokens": 1050000,
             "maxOutputTokens": 128000,
-            "supportsTemperature": false
+            "supportsTemperature": false,
+            "releaseDate": "2026-04-23"
           },
           {
             "name": "gpt-5.4",
             "maxTokens": 1050000,
             "maxOutputTokens": 128000,
-            "supportsTemperature": false
+            "supportsTemperature": true,
+            "releaseDate": "2026-03-05"
           },
           {
             "name": "gpt-5.4-mini",
             "maxTokens": 400000,
             "maxOutputTokens": 128000,
-            "supportsTemperature": false
+            "supportsTemperature": true,
+            "releaseDate": "2026-03-17"
           },
           {
             "name": "gpt-5.4-nano",
             "maxTokens": 400000,
             "maxOutputTokens": 128000,
-            "supportsTemperature": false
+            "supportsTemperature": true,
+            "releaseDate": "2026-03-17"
           },
           {
             "name": "gpt-4.1",
             "maxTokens": 1047576,
             "maxOutputTokens": 32768,
-            "supportsTemperature": true
+            "supportsTemperature": true,
+            "releaseDate": "2025-04-14"
           },
           {
             "name": "gpt-4.1-mini",
             "maxTokens": 1047576,
             "maxOutputTokens": 32768,
-            "supportsTemperature": true
+            "supportsTemperature": true,
+            "releaseDate": "2025-04-14"
           },
           {
             "name": "o3",
             "maxTokens": 200000,
             "maxOutputTokens": 100000,
-            "supportsTemperature": false
+            "supportsTemperature": false,
+            "releaseDate": "2025-04-16"
           },
           {
-            "name": "o4-mini",
+            "name": "gpt-5.4-pro",
+            "maxTokens": 1050000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-03-05"
+          },
+          {
+            "name": "gpt-5.5-pro",
+            "maxTokens": 1050000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-04-23"
+          },
+          {
+            "name": "gpt-5-mini",
+            "maxTokens": 400000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2025-08-07"
+          },
+          {
+            "name": "gpt-5.2-pro",
+            "maxTokens": 400000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2025-12-11"
+          },
+          {
+            "name": "gpt-5.3-codex",
+            "maxTokens": 400000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": true,
+            "releaseDate": "2026-02-05"
+          },
+          {
+            "name": "gpt-5-nano",
+            "maxTokens": 400000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2025-08-07"
+          },
+          {
+            "name": "gpt-5.6",
+            "maxTokens": 1050000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-07-09"
+          },
+          {
+            "name": "gpt-5-pro",
+            "maxTokens": 400000,
+            "maxOutputTokens": 272000,
+            "supportsTemperature": false,
+            "releaseDate": "2025-10-06"
+          },
+          {
+            "name": "gpt-5.3-codex-spark",
+            "maxTokens": 128000,
+            "maxOutputTokens": 32000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-02-05"
+          },
+          {
+            "name": "gpt-6.1-sol",
+            "maxTokens": 1050000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-09-29"
+          },
+          {
+            "name": "gpt-6-astra",
+            "maxTokens": 1050000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-09-04"
+          },
+          {
+            "name": "gpt-5.1",
+            "maxTokens": 400000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": true,
+            "releaseDate": "2025-11-13"
+          },
+          {
+            "name": "o3-pro",
             "maxTokens": 200000,
             "maxOutputTokens": 100000,
-            "supportsTemperature": false
+            "supportsTemperature": false,
+            "releaseDate": "2025-06-10"
+          },
+          {
+            "name": "gpt-daybreak-blue-latest",
+            "maxTokens": 1050000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-08-07"
+          },
+          {
+            "name": "gpt-5.6-luna",
+            "maxTokens": 1050000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-07-09"
+          },
+          {
+            "name": "gpt-5.2",
+            "maxTokens": 400000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": true,
+            "releaseDate": "2025-12-11"
+          },
+          {
+            "name": "gpt-6-luna",
+            "maxTokens": 1050000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-09-22"
+          },
+          {
+            "name": "gpt-5.6-terra",
+            "maxTokens": 1050000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-07-09"
+          },
+          {
+            "name": "gpt-daybreak-red-latest",
+            "maxTokens": 400000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-08-07"
+          },
+          {
+            "name": "gpt-5",
+            "maxTokens": 400000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2025-08-07"
+          },
+          {
+            "name": "gpt-5.6-sol",
+            "maxTokens": 1050000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-07-09"
+          },
+          {
+            "name": "gpt-6-sol",
+            "maxTokens": 1050000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-09-22"
           }
         ],
         "autoSyncModels": true,
         "modelSource": "modelsDev",
-        "id": "openai"
+        "id": "openai",
+        "lastModelSync": {
+          "at": 1792135618800
+        }
       },
       {
         "name": "Gemini",
@@ -135,19 +285,22 @@
             "name": "gemini-3.5-flash",
             "maxTokens": 1048576,
             "maxOutputTokens": 65536,
-            "supportsTemperature": true
+            "supportsTemperature": true,
+            "releaseDate": "2026-05-19"
           },
           {
             "name": "gemini-3.1-pro-preview",
             "maxTokens": 1048576,
             "maxOutputTokens": 65536,
-            "supportsTemperature": true
+            "supportsTemperature": true,
+            "releaseDate": "2026-02-19"
           },
           {
             "name": "gemini-3.1-flash-lite",
             "maxTokens": 1048576,
             "maxOutputTokens": 65536,
-            "supportsTemperature": true
+            "supportsTemperature": true,
+            "releaseDate": "2026-05-07"
           },
           {
             "name": "gemini-3-pro-preview",
@@ -159,30 +312,156 @@
             "name": "gemini-3-flash-preview",
             "maxTokens": 1048576,
             "maxOutputTokens": 65536,
-            "supportsTemperature": true
+            "supportsTemperature": true,
+            "releaseDate": "2025-12-17"
           },
           {
             "name": "gemini-2.5-pro",
             "maxTokens": 1048576,
             "maxOutputTokens": 65536,
-            "supportsTemperature": true
+            "supportsTemperature": true,
+            "releaseDate": "2025-06-17"
           },
           {
             "name": "gemini-2.5-flash",
             "maxTokens": 1048576,
             "maxOutputTokens": 65536,
-            "supportsTemperature": true
+            "supportsTemperature": true,
+            "releaseDate": "2025-06-17"
           },
           {
             "name": "gemini-2.5-flash-lite",
             "maxTokens": 1048576,
             "maxOutputTokens": 65536,
-            "supportsTemperature": true
+            "supportsTemperature": true,
+            "releaseDate": "2025-06-17"
+          },
+          {
+            "name": "gemini-flash-latest",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "supportsTemperature": true,
+            "releaseDate": "2026-08-13"
+          },
+          {
+            "name": "gemma-4-31b-it",
+            "maxTokens": 262144,
+            "maxOutputTokens": 32768,
+            "supportsTemperature": true,
+            "releaseDate": "2026-04-02"
+          },
+          {
+            "name": "lyria-3-pro-preview",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "supportsTemperature": true,
+            "releaseDate": "2026-03-25"
+          },
+          {
+            "name": "gemini-flash-lite-latest",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "supportsTemperature": true,
+            "releaseDate": "2026-07-21"
+          },
+          {
+            "name": "gemini-3.6-flash",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "supportsTemperature": true,
+            "releaseDate": "2026-07-21"
+          },
+          {
+            "name": "gemma-4-26b-a4b-it",
+            "maxTokens": 262144,
+            "maxOutputTokens": 32768,
+            "supportsTemperature": true,
+            "releaseDate": "2026-04-02"
+          },
+          {
+            "name": "gemini-3.5-flash-lite",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "supportsTemperature": true,
+            "releaseDate": "2026-07-21"
+          },
+          {
+            "name": "lyria-3-clip-preview",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "supportsTemperature": true,
+            "releaseDate": "2026-03-25"
+          },
+          {
+            "name": "gemini-2.5-computer-use-preview-10-2025",
+            "maxTokens": 128000,
+            "maxOutputTokens": 64000,
+            "supportsTemperature": true,
+            "releaseDate": "2025-10-07"
+          },
+          {
+            "name": "deep-research-preview-04-2026",
+            "maxTokens": 131072,
+            "maxOutputTokens": 65536,
+            "supportsTemperature": true,
+            "releaseDate": "2026-04-21"
+          },
+          {
+            "name": "deep-research-max-preview-04-2026",
+            "maxTokens": 131072,
+            "maxOutputTokens": 65536,
+            "supportsTemperature": true,
+            "releaseDate": "2026-04-21"
+          },
+          {
+            "name": "gemini-3.7-flash",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "supportsTemperature": true,
+            "releaseDate": "2026-08-13"
+          },
+          {
+            "name": "gemini-3.1-pro-preview-customtools",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "supportsTemperature": true,
+            "releaseDate": "2026-02-19"
+          },
+          {
+            "name": "gemini-3.8-flash",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "supportsTemperature": true,
+            "releaseDate": "2026-09-02"
+          },
+          {
+            "name": "gemini-3.5-live-translate-preview",
+            "maxTokens": 16384,
+            "maxOutputTokens": 32768,
+            "supportsTemperature": true,
+            "releaseDate": "2026-06-09"
+          },
+          {
+            "name": "gemini-3.1-flash-live-preview",
+            "maxTokens": 131072,
+            "maxOutputTokens": 65536,
+            "supportsTemperature": true,
+            "releaseDate": "2026-03-26"
+          },
+          {
+            "name": "gemini-4-argon",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 32768,
+            "supportsTemperature": true,
+            "releaseDate": "2026-10-13"
           }
         ],
         "autoSyncModels": true,
         "modelSource": "modelsDev",
-        "id": "gemini"
+        "id": "gemini",
+        "lastModelSync": {
+          "at": 1792135636899
+        }
       }
     ]
   },
