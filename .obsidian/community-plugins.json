@@ -4,7 +4,6 @@
   "templater-obsidian",
   "editing-toolbar",
   "easy-typing-obsidian",
-  "claudian",
   "terminal",
   "obsidian-importer",
   "obsidian-tasks-plugin",
@@ -12,7 +11,6 @@
   "obsidian-linter",
   "open-in-new-tab",
   "mousewheel-image-zoom",
-  "remotely-save",
   "obsidian-git",
   "obsidian-style-settings"
 ]

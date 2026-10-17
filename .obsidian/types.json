@@ -25,6 +25,9 @@
     "TQ_show_tree": "checkbox",
     "TQ_show_urgency": "checkbox",
     "TQ_show_toolbar": "checkbox",
-    "Date": "datetime"
+    "Date": "datetime",
+    "Update": "datetime",
+    "创建时间": "datetime",
+    "更新时间": "datetime"
   }
 }
