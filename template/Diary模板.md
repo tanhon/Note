@@ -1,6 +1,5 @@
 ---
 创建时间: <% tp.date.now("YYYY-MM-DD HH:mm:ss") %>
-更新时间:
 ---
 
 今天是 <% tp.date.now("YYYY-MM-DD ddd HH:mm:ss") %>。
