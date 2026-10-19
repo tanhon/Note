@@ -1,0 +1,12 @@
+import fs from 'node:fs/promises';
+import {Presentation,PresentationFile} from '@oai/artifact-tool';
+const p=Presentation.create({slideSize:{width:1280,height:720}});
+const s=p.slides.add(); s.background.fill='#FFFFFF';
+const t=s.shapes.add({geometry:'textbox',position:{left:70,top:70,width:1100,height:150},fill:'none',line:{fill:'none',width:0}});
+t.text='AI 短视频的未来\n创新、注意力与创作机会';
+t.text.style={fontSize:44,typeface:'Microsoft YaHei',color:'#20252B',insets:0,autoFit:'none'};
+s.speakerNotes.text='演讲备注测试。';
+await (await PresentationFile.exportPptx(p)).save('probe.pptx');
+const b=await p.export({slide:s,format:'png',scale:1});
+await fs.writeFile('probe.png',new Uint8Array(await b.arrayBuffer()));
+console.log('PROBE_OK');

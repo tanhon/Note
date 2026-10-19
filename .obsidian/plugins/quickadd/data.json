@@ -273,7 +273,7 @@
         "modelSource": "modelsDev",
         "id": "openai",
         "lastModelSync": {
-          "at": 1792328687585
+          "at": 1792415459036
         }
       },
       {
@@ -460,11 +460,11 @@
         "modelSource": "modelsDev",
         "id": "gemini",
         "lastModelSync": {
-          "at": 1792328687586
+          "at": 1792415459037
         }
       }
     ],
-    "lastModelAutoSyncAt": 1792328687586
+    "lastModelAutoSyncAt": 1792415459037
   },
   "migrations": {
     "migrateToMacroIDFromEmbeddedMacro": true,
