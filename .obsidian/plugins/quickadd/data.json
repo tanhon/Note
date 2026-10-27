@@ -267,13 +267,20 @@
             "maxOutputTokens": 128000,
             "supportsTemperature": false,
             "releaseDate": "2026-09-22"
+          },
+          {
+            "name": "gpt-6.1-terra",
+            "maxTokens": 1050000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-10-26"
           }
         ],
         "autoSyncModels": true,
         "modelSource": "modelsDev",
         "id": "openai",
         "lastModelSync": {
-          "at": 1792906821719
+          "at": 1793069960593
         }
       },
       {
@@ -467,11 +474,11 @@
         "modelSource": "modelsDev",
         "id": "gemini",
         "lastModelSync": {
-          "at": 1792906821719
+          "at": 1793069960593
         }
       }
     ],
-    "lastModelAutoSyncAt": 1792906821719
+    "lastModelAutoSyncAt": 1793069960593
   },
   "migrations": {
     "migrateToMacroIDFromEmbeddedMacro": true,
