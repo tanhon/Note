@@ -1,0 +1,11 @@
+{
+  "trackersFolder": "",
+  "dateFormat": "YYYY-MM-DD",
+  "daysToShow": 30,
+  "showChartByDefault": true,
+  "showStatsByDefault": false,
+  "hideChartOnMobile": false,
+  "hideStatsOnMobile": false,
+  "hideTrackerTitle": false,
+  "disableLimitReaction": false
+}
