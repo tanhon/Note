@@ -7,5 +7,11 @@
   "hideChartOnMobile": false,
   "hideStatsOnMobile": false,
   "hideTrackerTitle": false,
-  "disableLimitReaction": false
+  "disableLimitReaction": false,
+  "customSortOrder": {
+    "Habits": [
+      "三天洗一次袜子和内衣",
+      "早上9点醒来"
+    ]
+  }
 }

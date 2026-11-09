@@ -600,7 +600,8 @@
   "additionalFileExtensions": [],
   "foldersToIgnore": [
     "Diary",
-    "算法笔记"
+    "算法笔记",
+    "Habits"
   ],
   "filesToIgnore": [],
   "linterLocale": "system-default",
