@@ -10112,3 +10112,4 @@
 "smart_sources:Habits/习惯追踪表.md": null,
 "smart_sources:Habits/早上9点醒来.md": null,
 "smart_sources:Habits/三天洗一次袜子和内衣.md": {"class_name":"SmartSource","last_read":{"hash":"klf6ck","at":1794235585302},"embedding":{"history":[]},"path":"Habits/三天洗一次袜子和内衣.md","last_import":{"mtime":1794235571294,"size":68,"at":1794235585303,"hash":"klf6ck"},"outlinks":[],"metadata":{"type":"good-habit","trackingStartDate":"2026-11-09","data":{}},"blocks_data":{"#---frontmatter---":{"text":null,"length":0,"last_read":{"hash":"m3qfty","at":1794235585302},"key":"Habits/三天洗一次袜子和内衣.md#---frontmatter---","lines":[1,5],"size":67,"should_embed":false}},"block_embedding_selection":{"version":2,"min_chars":200,"max_input_chars":1894,"source_key":"Habits/三天洗一次袜子和内衣.md","requires_reimport":false},"task_lines":[],"tasks":{},"codeblock_ranges":[],"outlinks_version":2},
+"smart_sources:Diary/2026-11/Untitled.md": null,
