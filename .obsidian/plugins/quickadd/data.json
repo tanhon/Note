@@ -280,7 +280,7 @@
         "modelSource": "modelsDev",
         "id": "openai",
         "lastModelSync": {
-          "at": 1794233629200
+          "at": 1794406719219
         }
       },
       {
@@ -408,14 +408,14 @@
           },
           {
             "name": "deep-research-preview-04-2026",
-            "maxTokens": 131072,
+            "maxTokens": 1048576,
             "maxOutputTokens": 65536,
             "supportsTemperature": true,
             "releaseDate": "2026-04-21"
           },
           {
             "name": "deep-research-max-preview-04-2026",
-            "maxTokens": 131072,
+            "maxTokens": 1048576,
             "maxOutputTokens": 65536,
             "supportsTemperature": true,
             "releaseDate": "2026-04-21"
@@ -468,17 +468,24 @@
             "maxOutputTokens": 65536,
             "supportsTemperature": true,
             "releaseDate": "2026-02-19"
+          },
+          {
+            "name": "gemini-4-carbon",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 32768,
+            "supportsTemperature": true,
+            "releaseDate": "2026-11-10"
           }
         ],
         "autoSyncModels": true,
         "modelSource": "modelsDev",
         "id": "gemini",
         "lastModelSync": {
-          "at": 1794233629201
+          "at": 1794406719219
         }
       }
     ],
-    "lastModelAutoSyncAt": 1794233629201
+    "lastModelAutoSyncAt": 1794406719219
   },
   "migrations": {
     "migrateToMacroIDFromEmbeddedMacro": true,
