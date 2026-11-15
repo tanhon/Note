@@ -280,7 +280,7 @@
         "modelSource": "modelsDev",
         "id": "openai",
         "lastModelSync": {
-          "at": 1794667559368
+          "at": 1794754014764
         }
       },
       {
@@ -444,7 +444,7 @@
           {
             "name": "gemini-3.5-live-translate-preview",
             "maxTokens": 16384,
-            "maxOutputTokens": 32768,
+            "maxOutputTokens": 16384,
             "supportsTemperature": true,
             "releaseDate": "2026-06-09"
           },
@@ -488,11 +488,11 @@
         "modelSource": "modelsDev",
         "id": "gemini",
         "lastModelSync": {
-          "at": 1794667559368
+          "at": 1794754014766
         }
       }
     ],
-    "lastModelAutoSyncAt": 1794667559368
+    "lastModelAutoSyncAt": 1794754014766
   },
   "migrations": {
     "migrateToMacroIDFromEmbeddedMacro": true,
