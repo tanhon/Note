@@ -274,13 +274,27 @@
             "maxOutputTokens": 128000,
             "supportsTemperature": true,
             "releaseDate": "2026-10-26"
+          },
+          {
+            "name": "gpt-6.2-sol",
+            "maxTokens": 1050000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-11-17"
+          },
+          {
+            "name": "gpt-6.2-astra",
+            "maxTokens": 1050000,
+            "maxOutputTokens": 128000,
+            "supportsTemperature": false,
+            "releaseDate": "2026-11-17"
           }
         ],
         "autoSyncModels": true,
         "modelSource": "modelsDev",
         "id": "openai",
         "lastModelSync": {
-          "at": 1794926867628
+          "at": 1795242542465
         }
       },
       {
@@ -482,17 +496,24 @@
             "maxOutputTokens": 65536,
             "supportsTemperature": true,
             "releaseDate": "2026-11-12"
+          },
+          {
+            "name": "gemini-4-neon",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "supportsTemperature": true,
+            "releaseDate": "2026-11-18"
           }
         ],
         "autoSyncModels": true,
         "modelSource": "modelsDev",
         "id": "gemini",
         "lastModelSync": {
-          "at": 1794926867630
+          "at": 1795242542465
         }
       }
     ],
-    "lastModelAutoSyncAt": 1794926867630
+    "lastModelAutoSyncAt": 1795242542465
   },
   "migrations": {
     "migrateToMacroIDFromEmbeddedMacro": true,
